@@ -2,19 +2,28 @@ import asyncio
 import httpx
 from app.config import settings
 
+MISTRAL_EMBED_URL = "https://api.mistral.ai/v1/embeddings"
+
 
 class EmbeddingService:
     def __init__(self):
-        self.base_url = "http://localhost:11434"  # local, requiert Ollama installé pour cette partie
-        self.model = settings.embedding_model
+        self.api_key = settings.mistral_api_key
+        self.model = settings.mistral_embedding_model
+
+    def _headers(self):
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
 
     async def _embed_one(self, client: httpx.AsyncClient, text: str) -> list[float]:
         resp = await client.post(
-            f"{self.base_url}/api/embeddings",
-            json={"model": self.model, "prompt": text},
+            MISTRAL_EMBED_URL,
+            json={"model": self.model, "input": text},
+            headers=self._headers(),
         )
         resp.raise_for_status()
-        return resp.json()["embedding"]
+        return resp.json()["data"][0]["embedding"]
 
     async def embed_texts(self, texts: list[str], concurrency: int = 8) -> list[list[float]]:
         semaphore = asyncio.Semaphore(concurrency)

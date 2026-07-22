@@ -8,6 +8,8 @@ from app.database import init_db
 from app.config import settings
 from app.routers import documents, chat, quiz, summary, progress
 
+MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,15 +39,18 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/test-ollama")
-async def test_ollama():
-    """Vérifie que la connexion à Ollama Cloud (API directe, sans install locale) fonctionne."""
-    if not settings.ollama_api_key:
-        raise HTTPException(500, "OLLAMA_API_KEY manquante dans le .env")
+@app.get("/test-mistral")
+async def test_mistral():
+    """Vérifie que la connexion à l'API Mistral AI fonctionne."""
+    if not settings.mistral_api_key:
+        raise HTTPException(500, "MISTRAL_API_KEY manquante dans le .env")
 
-    headers = {"Authorization": f"Bearer {settings.ollama_api_key}"}
+    headers = {
+        "Authorization": f"Bearer {settings.mistral_api_key}",
+        "Content-Type": "application/json",
+    }
     payload = {
-        "model": settings.llm_model,
+        "model": settings.mistral_model,
         "messages": [{"role": "user", "content": "Réponds juste 'bonjour' en un mot."}],
         "stream": False,
     }
@@ -53,7 +58,7 @@ async def test_ollama():
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
-                f"{settings.ollama_base_url}/api/chat",
+                MISTRAL_CHAT_URL,
                 json=payload,
                 headers=headers,
             )
@@ -62,13 +67,13 @@ async def test_ollama():
     except httpx.HTTPStatusError as e:
         raise HTTPException(
             e.response.status_code,
-            f"Ollama a répondu une erreur: {e.response.text}",
+            f"Mistral AI a répondu une erreur: {e.response.text}",
         )
     except httpx.RequestError as e:
-        raise HTTPException(502, f"Impossible de contacter ollama.com: {e}")
+        raise HTTPException(502, f"Impossible de contacter l'API Mistral AI: {e}")
 
     return {
         "status": "ok",
-        "model": settings.llm_model,
-        "reponse": data["message"]["content"],
+        "model": settings.mistral_model,
+        "reponse": data["choices"][0]["message"]["content"],
     }

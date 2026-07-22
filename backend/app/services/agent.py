@@ -1,5 +1,5 @@
 import json
-from langchain_ollama import ChatOllama
+from langchain_mistralai import ChatMistralAI
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
@@ -85,16 +85,14 @@ SYSTEM_PROMPT = (
 
 
 def build_agent():
-    llm = ChatOllama(
-        base_url=settings.ollama_base_url,
-        model=settings.llm_model,
+    llm = ChatMistralAI(
+        model=settings.mistral_model,
         temperature=0.3,
-        client_kwargs={
-            "headers": {"Authorization": f"Bearer {settings.ollama_api_key}"}
-        },
+        mistral_api_key=settings.mistral_api_key,
     )
     tools = [vector_search_tool, list_documents_tool, quiz_generator_tool]
     checkpointer = MemorySaver()
     return create_react_agent(llm, tools, prompt=SYSTEM_PROMPT, checkpointer=checkpointer)
+
 
 agent = build_agent()

@@ -4,10 +4,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "Assistant de Révision - API"
 
-    ollama_base_url: str = "https://ollama.com"
-    ollama_api_key: str = ""
-    llm_model: str = "gpt-oss:120b"
-    embedding_model: str = "nomic-embed-text"
+    # Mistral AI
+    mistral_api_key: str = ""
+    mistral_model: str = "mistral-large-latest"
+    mistral_embedding_model: str = "mistral-embed"
 
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
 
