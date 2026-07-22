@@ -4,6 +4,8 @@ const API = axios.create({
   baseURL: 'http://localhost:8000/api',
 });
 
+export default API;
+
 // Analytics & Data Management
 export const getMetrics = () => API.get('/dashboard/metrics');
 export const createCustomer = (data) => API.post('/dashboard/customers', data);
