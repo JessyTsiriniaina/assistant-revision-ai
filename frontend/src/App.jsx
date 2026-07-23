@@ -1,30 +1,36 @@
-import { useState } from "react";
-import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
-import ChatArea from "./components/ChatArea";
-import SummaryPanel from "./components/SummaryPanel";
-import QuizPanel from "./components/QuizPanel";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './context/ToastContext';
+import LandingPage from './pages/LandingPage';
+import AppLayout from './layouts/AppLayout';
+import Dashboard from './pages/Dashboard';
+import AssistantPage from './pages/AssistantPage';
+import SummaryPage from './pages/SummaryPage';
+import FlashcardsPage from './pages/FlashcardsPage';
+import QuizPage from './pages/QuizPage';
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/app" element={<AppLayout />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="assistant" element={<AssistantPage />} />
+        <Route path="summaries" element={<SummaryPage />} />
+        <Route path="flashcards" element={<FlashcardsPage />} />
+        <Route path="quiz" element={<QuizPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
 export default function App() {
-  const [view, setView] = useState("chat");
-  const [selectedDoc, setSelectedDoc] = useState(1);
-
   return (
-    <div className="h-screen flex flex-col bg-gray-50 text-gray-900">
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          selectedDoc={selectedDoc}
-          setSelectedDoc={setSelectedDoc}
-          view={view}
-          setView={setView}
-        />
-        <main className="flex-1 overflow-hidden">
-          {view === "chat" && <ChatArea />}
-          {view === "summary" && <SummaryPanel />}
-          {view === "quiz" && <QuizPanel />}
-        </main>
-      </div>
-    </div>
+    <BrowserRouter>
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
+    </BrowserRouter>
   );
 }
