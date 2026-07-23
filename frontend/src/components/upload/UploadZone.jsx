@@ -103,6 +103,11 @@ export default function UploadZone({ compact = false }) {
         setFiles(prev => prev.filter(f => f.id !== id));
         addToast('Document supprimé', 'info');
     };
+    
+    const handleUploadFile = (e)=>{
+      e.preventDefault();
+      const data = new FormData();
+    };
 
     return (
         <div className="space-y-4">

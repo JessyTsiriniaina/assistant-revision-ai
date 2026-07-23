@@ -3,6 +3,7 @@ import { FileText, BookMarked, Brain, Plus, Zap } from 'lucide-react';
 import UploadZone from '../components/upload/UploadZone';
 import { useNavigate } from 'react-router-dom';
 
+
 export default function Dashboard() {
     const navigate = useNavigate();
     const [showUpload, setShowUpload] = useState(false);
