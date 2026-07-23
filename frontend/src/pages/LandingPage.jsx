@@ -107,8 +107,16 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-4">
                             <DarkModeToggle dark={dark} toggle={() => setDark(d => !d)} />
+                            <Link
+                                to="/app/dashboard"
+                                className="flex items-center gap-1.5 text-sm font-semibold text-white px-4 py-2 rounded-xl transition-transform hover:scale-105"
+                                style={{ background: 'linear-gradient(135deg,#2563eb,#4f46e5)', boxShadow: '0 4px 14px rgba(37,99,235,.35)' }}
+                            >
+                                Accéder au tableau de bord
+                                <ChevronRight className="w-4 h-4" />
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -151,6 +159,15 @@ export default function LandingPage() {
                             <p style={{ fontSize: '0.95rem', color: '#94a3b8', lineHeight: 1.7, maxWidth: '440px' }}>
                                 Importez vos cours, posez vos questions, générez des fiches, résumés et quiz — tout en un seul endroit.
                             </p>
+
+                            <Link
+                                to="/app/dashboard"
+                                className="inline-flex items-center gap-2 mt-6 text-sm font-semibold text-white px-6 py-3 rounded-xl transition-transform hover:scale-105"
+                                style={{ background: 'linear-gradient(135deg,#2563eb,#4f46e5)', boxShadow: '0 4px 20px rgba(37,99,235,.4)' }}
+                            >
+                                Accéder au tableau de bord
+                                <ChevronRight className="w-4 h-4" />
+                            </Link>
                         </div>
 
                         {/* ── Photos droite ── */}

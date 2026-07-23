@@ -1,12 +1,11 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import {
     LayoutDashboard, BookOpen, MessageCircle, FileText,
-    BookMarked, Brain, Clock, User, LogOut, GraduationCap,
+    BookMarked, Brain, Clock, User, GraduationCap,
     ChevronLeft, Menu, Bell, Search
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { mockUser } from '../data/mockData';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord', to: '/app/dashboard' },
@@ -20,17 +19,9 @@ const navItems = [
 ];
 
 export default function AppLayout() {
-    const { user, logout } = useAuth();
-    const { addToast } = useToast();
-    const navigate = useNavigate();
+    const user = mockUser;
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [mobileOpen, setMobileOpen] = useState(false);
-
-    const handleLogout = () => {
-        logout();
-        addToast('À bientôt ! 👋', 'info');
-        navigate('/');
-    };
 
     const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
@@ -108,14 +99,6 @@ export default function AppLayout() {
                             </div>
                         )}
                     </NavLink>
-                    <button
-                        onClick={handleLogout}
-                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors ${!sidebarOpen && 'justify-center'}`}
-                        title={!sidebarOpen ? 'Déconnexion' : undefined}
-                    >
-                        <LogOut className="w-4 h-4 flex-shrink-0" />
-                        {sidebarOpen && <span className="text-sm font-medium">Déconnexion</span>}
-                    </button>
                 </div>
             </aside>
 

@@ -4,8 +4,7 @@ import {
     TrendingUp, Clock, Plus, Search, ChevronRight,
     Zap, Target, Activity
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { mockDocuments, mockHistory } from '../data/mockData';
+import { mockUser, mockDocuments, mockHistory } from '../data/mockData';
 import UploadZone from '../components/upload/UploadZone';
 import { useNavigate } from 'react-router-dom';
 
@@ -77,7 +76,7 @@ function CourseCard({ doc }) {
 }
 
 export default function Dashboard() {
-    const { user } = useAuth();
+    const user = mockUser;
     const navigate = useNavigate();
     const [showUpload, setShowUpload] = useState(false);
 

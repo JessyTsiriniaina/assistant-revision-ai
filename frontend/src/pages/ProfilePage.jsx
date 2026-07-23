@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import {
     User, Mail, GraduationCap, Globe, Camera, Edit3,
-    Save, X, Shield, Bell, Trash2, LogOut, CheckCircle, Key
+    Save, X, Shield, Bell, Trash2, CheckCircle, Key
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { mockUser } from '../data/mockData';
 import { useToast } from '../context/ToastContext';
-import { useNavigate } from 'react-router-dom';
 
 const LEVELS = ['Lycée', 'Licence 1', 'Licence 2', 'Licence 3', 'Master 1', 'Master 2', 'Doctorat', 'Autre'];
 const LANGUAGES = ['Français', 'English', 'Español', 'Deutsch', 'Italiano'];
 
 export default function ProfilePage() {
-    const { user, updateProfile, logout } = useAuth();
+    const [user, setUser] = useState(mockUser);
     const { addToast } = useToast();
-    const navigate = useNavigate();
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({
         name: user?.name || '',
@@ -24,7 +22,7 @@ export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState('profile');
 
     const handleSave = () => {
-        updateProfile(form);
+        setUser(prev => ({ ...prev, ...form }));
         setEditing(false);
         addToast('Profil mis à jour avec succès !', 'success');
     };
@@ -249,13 +247,6 @@ export default function ProfilePage() {
                     <div className="mt-6 pt-6 border-t border-red-100">
                         <h4 className="text-sm font-bold text-red-600 mb-3">Zone dangereuse</h4>
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <button
-                                onClick={() => { logout(); addToast('Déconnecté avec succès', 'info'); navigate('/'); }}
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                Se déconnecter
-                            </button>
                             <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium transition-colors">
                                 <Trash2 className="w-4 h-4" />
                                 Supprimer le compte
