@@ -1,23 +1,5 @@
 // Mock data for the AI Study Assistant application
 
-export const mockUser = {
-    id: 'user-1',
-    name: 'Sophie Martin',
-    email: 'sophie.martin@university.fr',
-    avatar: null,
-    initials: 'SM',
-    level: 'Master 1',
-    language: 'Français',
-    joinedAt: '2024-09-01',
-    stats: {
-        documentsImported: 14,
-        summariesCreated: 9,
-        flashcardsGenerated: 42,
-        quizzesCompleted: 17,
-        successRate: 78,
-    },
-};
-
 export const mockDocuments = [
     {
         id: 'doc-1',
@@ -95,8 +77,6 @@ export const mockConversations = [
     {
         id: 'conv-1',
         title: 'Comprendre le gradient descent',
-        documentId: 'doc-1',
-        documentName: 'Introduction au Machine Learning',
         lastMessage: "Peux-tu m'expliquer comment fonctionne la descente de gradient ?",
         lastMessageAt: '2024-11-20T14:30:00',
         messageCount: 8,
@@ -124,8 +104,6 @@ export const mockConversations = [
     {
         id: 'conv-2',
         title: 'Loi normale et intervalles',
-        documentId: 'doc-2',
-        documentName: 'Probabilités et Statistiques',
         lastMessage: 'Qu\'est-ce qu\'un intervalle de confiance ?',
         lastMessageAt: '2024-11-19T10:15:00',
         messageCount: 5,
@@ -144,8 +122,6 @@ export const mockConversations = [
     {
         id: 'conv-3',
         title: 'CAP Theorem expliqué',
-        documentId: 'doc-3',
-        documentName: 'Architecture des Systèmes Distribués',
         lastMessage: 'Explique-moi le théorème CAP',
         lastMessageAt: '2024-11-18T16:45:00',
         messageCount: 12,
@@ -341,65 +317,6 @@ export const mockQuizzes = [
                 explanation: 'Avec k=5, on divise le dataset en 5 parties. Le modèle est entraîné 5 fois, chaque fois avec une partie différente comme ensemble de validation.',
             },
         ],
-    },
-];
-
-export const mockHistory = [
-    {
-        id: 'hist-1',
-        documentId: 'doc-1',
-        documentName: 'Introduction au Machine Learning',
-        subject: 'Intelligence Artificielle',
-        lastRevision: '2024-11-20',
-        totalRevisions: 5,
-        summaryGenerated: true,
-        flashcardsCount: 12,
-        quizzesCompleted: 3,
-        lastScore: 84,
-        progress: 75,
-        color: 'blue',
-    },
-    {
-        id: 'hist-2',
-        documentId: 'doc-3',
-        documentName: 'Architecture des Systèmes Distribués',
-        subject: 'Informatique',
-        lastRevision: '2024-11-18',
-        totalRevisions: 7,
-        summaryGenerated: true,
-        flashcardsCount: 8,
-        quizzesCompleted: 5,
-        lastScore: 92,
-        progress: 90,
-        color: 'emerald',
-    },
-    {
-        id: 'hist-3',
-        documentId: 'doc-2',
-        documentName: 'Cours de Probabilités et Statistiques',
-        subject: 'Mathématiques',
-        lastRevision: '2024-11-19',
-        totalRevisions: 3,
-        summaryGenerated: true,
-        flashcardsCount: 15,
-        quizzesCompleted: 2,
-        lastScore: 68,
-        progress: 50,
-        color: 'purple',
-    },
-    {
-        id: 'hist-4',
-        documentId: 'doc-4',
-        documentName: 'Économie Internationale – Chapitre 4',
-        subject: 'Économie',
-        lastRevision: '2024-11-15',
-        totalRevisions: 2,
-        summaryGenerated: false,
-        flashcardsCount: 5,
-        quizzesCompleted: 1,
-        lastScore: 60,
-        progress: 30,
-        color: 'amber',
     },
 ];
 

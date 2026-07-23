@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-    Send, Paperclip, Plus, MessageCircle, BookOpen,
+    Send, Paperclip, Plus, MessageCircle,
     Loader2, GraduationCap, ChevronRight, Trash2, Bot, User
 } from 'lucide-react';
-import { mockConversations, mockDocuments } from '../data/mockData';
+import { mockConversations } from '../data/mockData';
 import { useToast } from '../context/ToastContext';
 
 function MessageBubble({ msg }) {
@@ -94,9 +94,9 @@ export default function AssistantPage() {
         await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
 
         const responses = [
-            "D'après votre cours, ce concept est fondamental. **Voici l'explication :**\n\nL'idée principale repose sur trois piliers essentiels :\n- **Premier principe** : la structure de base\n- **Deuxième principe** : l'application pratique\n- **Troisième principe** : les cas particuliers\n\nVoulez-vous que j'approfondisse l'un de ces points ?",
-            "Excellente question ! Selon votre document, on distingue deux approches complémentaires.\n\n**Approche théorique :** Elle définit les concepts fondamentaux qui permettent de modéliser le problème de manière abstraite.\n\n**Approche pratique :** Elle propose des implémentations concrètes, éprouvées en conditions réelles.",
-            "Je vous réponds en me basant exclusivement sur votre cours importé. **Points clés :**\n\nCe sujet couvre plusieurs aspects importants que vous devrez maîtriser pour votre examen. La notion centrale à retenir est que tout dépend du contexte d'application.",
+            "D'après vos documents, ce concept est fondamental. **Voici l'explication :**\n\nL'idée principale repose sur trois piliers essentiels :\n- **Premier principe** : la structure de base\n- **Deuxième principe** : l'application pratique\n- **Troisième principe** : les cas particuliers\n\nVoulez-vous que j'approfondisse l'un de ces points ?",
+            "Excellente question ! Selon vos documents, on distingue deux approches complémentaires.\n\n**Approche théorique :** Elle définit les concepts fondamentaux qui permettent de modéliser le problème de manière abstraite.\n\n**Approche pratique :** Elle propose des implémentations concrètes, éprouvées en conditions réelles.",
+            "Je vous réponds en me basant exclusivement sur votre base de connaissances. **Points clés :**\n\nCe sujet couvre plusieurs aspects importants que vous devrez maîtriser. La notion centrale à retenir est que tout dépend du contexte d'application.",
         ];
 
         const aiMsg = {
@@ -115,12 +115,9 @@ export default function AssistantPage() {
     };
 
     const newConversation = () => {
-        const doc = mockDocuments[Math.floor(Math.random() * mockDocuments.length)];
         const newConv = {
             id: `conv-${Date.now()}`,
             title: 'Nouvelle conversation',
-            documentId: doc.id,
-            documentName: doc.name,
             lastMessage: '',
             lastMessageAt: new Date().toISOString(),
             messageCount: 0,
@@ -128,7 +125,7 @@ export default function AssistantPage() {
                 {
                     id: 'm-init',
                     role: 'assistant',
-                    content: `Bonjour ! Je suis votre assistant IA pour le cours **"${doc.name}"**. Posez-moi vos questions et je vous répondrai en me basant uniquement sur ce document. 📚`,
+                    content: `Bonjour ! Je suis votre assistant IA. Posez-moi vos questions et je vous répondrai en me basant uniquement sur l'ensemble des documents de votre base de connaissances. 📚`,
                     timestamp: new Date().toISOString(),
                 }
             ],
@@ -153,7 +150,7 @@ export default function AssistantPage() {
     };
 
     const suggestedQuestions = [
-        'Explique-moi le concept principal de ce cours',
+        'Explique-moi les concepts principaux de mes documents',
         'Quelles sont les notions importantes à retenir ?',
         'Fais-moi un résumé des points clés',
         'Donne-moi un exemple concret',
@@ -192,7 +189,6 @@ export default function AssistantPage() {
                                     <p className={`text-xs font-semibold truncate ${activeConvId === conv.id ? 'text-primary-700' : 'text-gray-800'}`}>
                                         {conv.title}
                                     </p>
-                                    <p className="text-xs text-gray-400 truncate mt-0.5">{conv.documentName}</p>
                                     {conv.lastMessage && (
                                         <p className="text-xs text-gray-400 truncate mt-1">{conv.lastMessage.slice(0, 40)}...</p>
                                     )}
@@ -231,12 +227,7 @@ export default function AssistantPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-900 text-sm">AI Study Assistant</p>
-                        {activeConv && (
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <BookOpen className="w-3 h-3 text-primary-500" />
-                                <p className="text-xs text-primary-600 font-medium truncate">{activeConv.documentName}</p>
-                            </div>
-                        )}
+                        <p className="text-xs text-gray-400 truncate mt-0.5">Basé sur toute votre base de connaissances</p>
                     </div>
                     <span className="badge-blue hidden sm:flex items-center gap-1">
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
@@ -253,7 +244,7 @@ export default function AssistantPage() {
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Bienvenue dans l'Assistant IA</h3>
                             <p className="text-sm text-gray-500 mb-6">
-                                Posez vos questions sur vos cours et obtenez des réponses précises basées uniquement sur vos documents importés.
+                                Posez vos questions et obtenez des réponses précises basées uniquement sur l'ensemble des documents de votre base de connaissances.
                             </p>
                             <div className="w-full space-y-2">
                                 {suggestedQuestions.map((q, i) => (
@@ -280,12 +271,6 @@ export default function AssistantPage() {
 
                 {/* Input */}
                 <div className="p-4 border-t border-gray-100 bg-white">
-                    {activeConv && (
-                        <div className="flex items-center gap-2 mb-2 px-1">
-                            <BookOpen className="w-3.5 h-3.5 text-primary-500" />
-                            <span className="text-xs text-gray-500">Réponses basées sur : <strong className="text-gray-700">{activeConv.documentName}</strong></span>
-                        </div>
-                    )}
                     <div className="flex items-end gap-3">
                         <button className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0" title="Joindre un document">
                             <Paperclip className="w-4 h-4" />
@@ -295,7 +280,7 @@ export default function AssistantPage() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Posez votre question sur le cours..."
+                                placeholder="Posez votre question sur vos documents..."
                                 rows={1}
                                 className="input-field resize-none pr-12 py-3 text-sm max-h-32 overflow-y-auto"
                                 style={{ minHeight: '48px' }}

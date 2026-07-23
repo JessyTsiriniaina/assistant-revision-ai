@@ -133,7 +133,7 @@ export default function UploadZone({ compact = false }) {
                         <Upload className={`w-7 h-7 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`} />
                     </div>
                     <p className="text-base font-semibold text-gray-700 mb-1">
-                        {isDragging ? 'Déposez vos fichiers ici !' : 'Glissez-déposez vos cours ici'}
+                        {isDragging ? 'Déposez vos fichiers ici !' : 'Glissez-déposez vos documents ici'}
                     </p>
                     <p className="text-sm text-gray-500 mb-3">ou cliquez pour parcourir vos fichiers</p>
                     <div className="flex items-center justify-center gap-2">

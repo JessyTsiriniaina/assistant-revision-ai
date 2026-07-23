@@ -1,29 +1,22 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import {
-    LayoutDashboard, BookOpen, MessageCircle, FileText,
-    BookMarked, Brain, Clock, User, GraduationCap,
-    ChevronLeft, Menu, Bell, Search
+    LayoutDashboard, MessageCircle, FileText,
+    BookMarked, Brain, GraduationCap,
+    ChevronLeft, Menu
 } from 'lucide-react';
-import { mockUser } from '../data/mockData';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord', to: '/app/dashboard' },
-    { icon: BookOpen, label: 'Mes cours', to: '/app/courses' },
     { icon: MessageCircle, label: 'Assistant IA', to: '/app/assistant' },
     { icon: FileText, label: 'Résumés', to: '/app/summaries' },
     { icon: BookMarked, label: 'Fiches', to: '/app/flashcards' },
     { icon: Brain, label: 'Quiz', to: '/app/quiz' },
-    { icon: Clock, label: 'Historique', to: '/app/history' },
-    { icon: User, label: 'Profil', to: '/app/profile' },
 ];
 
 export default function AppLayout() {
-    const user = mockUser;
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [mobileOpen, setMobileOpen] = useState(false);
-
-    const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
     return (
         <div className="flex h-screen bg-surface overflow-hidden">
@@ -82,24 +75,6 @@ export default function AppLayout() {
                         </NavLink>
                     ))}
                 </nav>
-
-                {/* User section */}
-                <div className={`p-3 border-t border-gray-100 space-y-1`}>
-                    <NavLink
-                        to="/app/profile"
-                        className={`flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer ${!sidebarOpen && 'justify-center'}`}
-                    >
-                        <div className="w-8 h-8 rounded-full bg-gradient-blue flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-xs font-bold">{initials}</span>
-                        </div>
-                        {sidebarOpen && (
-                            <div className="overflow-hidden">
-                                <p className="text-sm font-semibold text-gray-800 truncate">{user?.name}</p>
-                                <p className="text-xs text-gray-400 truncate">{user?.level}</p>
-                            </div>
-                        )}
-                    </NavLink>
-                </div>
             </aside>
 
             {/* Main */}
@@ -112,29 +87,6 @@ export default function AppLayout() {
                     >
                         <Menu className="w-5 h-5" />
                     </button>
-
-                    <div className="flex-1 max-w-md">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Rechercher un cours, une fiche..."
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 ml-auto">
-                        <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-600 rounded-full" />
-                        </button>
-                        <NavLink to="/app/profile">
-                            <div className="w-9 h-9 rounded-full bg-gradient-blue flex items-center justify-center cursor-pointer hover:shadow-glow transition-shadow">
-                                <span className="text-white text-xs font-bold">{initials}</span>
-                            </div>
-                        </NavLink>
-                    </div>
                 </header>
 
                 {/* Page content */}

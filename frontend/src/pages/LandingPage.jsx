@@ -10,9 +10,9 @@ import hero1 from '../assets/hero1.jpg';
 import hero2 from '../assets/hero2.jpg';
 
 const features = [
-    { icon: Upload, title: 'Importation des documents', desc: 'Importez vos cours au format PDF, DOCX ou TXT en quelques secondes.', color: 'bg-blue-100 text-blue-600' },
+    { icon: Upload, title: 'Importation des documents', desc: 'Importez vos documents au format PDF, DOCX ou TXT en quelques secondes.', color: 'bg-blue-100 text-blue-600' },
     { icon: MessageCircle, title: 'Assistant IA', desc: 'Posez vos questions et obtenez des réponses basées uniquement sur vos documents.', color: 'bg-indigo-100 text-indigo-600' },
-    { icon: FileText, title: 'Résumés intelligents', desc: 'Transformez automatiquement un cours long en résumé clair et structuré.', color: 'bg-purple-100 text-purple-600' },
+    { icon: FileText, title: 'Résumés intelligents', desc: 'Transformez automatiquement un document long en résumé clair et structuré.', color: 'bg-purple-100 text-purple-600' },
     { icon: BookMarked, title: 'Fiches de révision', desc: 'Générez des fiches synthétiques pour mémoriser rapidement les notions importantes.', color: 'bg-emerald-100 text-emerald-600' },
     { icon: Brain, title: 'Quiz personnalisés', desc: 'Évaluez votre compréhension grâce à des quiz générés automatiquement.', color: 'bg-amber-100 text-amber-600' },
     { icon: BarChart3, title: 'Suivi des révisions', desc: 'Visualisez votre progression et votre historique de révision.', color: 'bg-rose-100 text-rose-600' },
@@ -157,7 +157,7 @@ export default function LandingPage() {
                             </h1>
 
                             <p style={{ fontSize: '0.95rem', color: '#94a3b8', lineHeight: 1.7, maxWidth: '440px' }}>
-                                Importez vos cours, posez vos questions, générez des fiches, résumés et quiz — tout en un seul endroit.
+                                Importez vos documents, posez vos questions, générez des fiches, résumés et quiz — tout en un seul endroit.
                             </p>
 
                             <Link
@@ -290,8 +290,8 @@ export default function LandingPage() {
                     </div>
                     <div className="grid md:grid-cols-3 gap-8">
                         {[
-                            { step: '01', icon: Upload, title: 'Importez votre cours', desc: "Glissez-déposez votre PDF, DOCX ou TXT. Notre IA analyse et indexe le contenu en quelques secondes.", color: 'bg-blue-500' },
-                            { step: '02', icon: Brain, title: "L'IA génère vos ressources", desc: "Résumés, fiches de révision et quiz sont créés automatiquement sur mesure pour votre cours.", color: 'bg-indigo-500' },
+                            { step: '01', icon: Upload, title: 'Importez votre document', desc: "Glissez-déposez votre PDF, DOCX ou TXT. Notre IA analyse et indexe le contenu en quelques secondes.", color: 'bg-blue-500' },
+                            { step: '02', icon: Brain, title: "L'IA génère vos ressources", desc: "Résumés, fiches de révision et quiz sont créés automatiquement à partir de vos documents.", color: 'bg-indigo-500' },
                             { step: '03', icon: CheckCircle, title: 'Révisez et progressez', desc: "Utilisez l'assistant pour vos questions, testez-vous avec les quiz et suivez votre progression.", color: 'bg-emerald-500' },
                         ].map((item, i) => (
                             <div key={i} className="text-center group">
