@@ -133,14 +133,6 @@ export default function SummaryPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button onClick={handleCopy} className="btn-ghost border border-gray-200 text-sm py-2">
-                        <Copy className="w-4 h-4" />
-                        Copier
-                    </button>
-                    <button className="btn-ghost border border-gray-200 text-sm py-2">
-                        <Download className="w-4 h-4" />
-                        PDF
-                    </button>
                     <button onClick={handleRegenerate} disabled={isGenerating} className="btn-primary text-sm py-2">
                         <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
                         {isGenerating ? 'Génération...' : 'Régénérer'}

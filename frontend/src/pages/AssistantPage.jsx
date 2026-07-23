@@ -272,9 +272,6 @@ export default function AssistantPage() {
                 {/* Input */}
                 <div className="p-4 border-t border-gray-100 bg-white">
                     <div className="flex items-end gap-3">
-                        <button className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0" title="Joindre un document">
-                            <Paperclip className="w-4 h-4" />
-                        </button>
                         <div className="flex-1 relative">
                             <textarea
                                 value={input}

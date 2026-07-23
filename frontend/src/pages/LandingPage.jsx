@@ -15,7 +15,6 @@ const features = [
     { icon: FileText, title: 'Résumés intelligents', desc: 'Transformez automatiquement un document long en résumé clair et structuré.', color: 'bg-purple-100 text-purple-600' },
     { icon: BookMarked, title: 'Fiches de révision', desc: 'Générez des fiches synthétiques pour mémoriser rapidement les notions importantes.', color: 'bg-emerald-100 text-emerald-600' },
     { icon: Brain, title: 'Quiz personnalisés', desc: 'Évaluez votre compréhension grâce à des quiz générés automatiquement.', color: 'bg-amber-100 text-amber-600' },
-    { icon: BarChart3, title: 'Suivi des révisions', desc: 'Visualisez votre progression et votre historique de révision.', color: 'bg-rose-100 text-rose-600' },
 ];
 
 /* ─── Toggle Jour / Nuit ─── */
@@ -80,7 +79,7 @@ export default function LandingPage() {
                             style={{ background: 'linear-gradient(135deg,#2563eb,#6366f1)' }}>
                             <GraduationCap className="w-5 h-5 text-white" />
                         </div>
-                        <span className="font-extrabold text-white text-xl tracking-wide">ReviseAI</span>
+                        <span className="font-extrabold text-white text-xl tracking-wide">AI Study</span>
                     </Link>
 
                     <div className="flex items-center gap-6">
@@ -109,14 +108,6 @@ export default function LandingPage() {
                         </div>
                         <div className="flex items-center gap-4">
                             <DarkModeToggle dark={dark} toggle={() => setDark(d => !d)} />
-                            <Link
-                                to="/app/dashboard"
-                                className="flex items-center gap-1.5 text-sm font-semibold text-white px-4 py-2 rounded-xl transition-transform hover:scale-105"
-                                style={{ background: 'linear-gradient(135deg,#2563eb,#4f46e5)', boxShadow: '0 4px 14px rgba(37,99,235,.35)' }}
-                            >
-                                Accéder au tableau de bord
-                                <ChevronRight className="w-4 h-4" />
-                            </Link>
                         </div>
                     </div>
                 </div>
@@ -198,58 +189,6 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ════════ ZONE UPLOAD ════════ */}
-            <section className="py-10 px-6 bg-white">
-                <div className="max-w-2xl mx-auto">
-                    <div
-                        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                        onDragLeave={() => setDragging(false)}
-                        onDrop={(e) => { e.preventDefault(); setDragging(false); }}
-                        style={{
-                            border: `2px dashed ${dragging ? '#2563eb' : '#93c5fd'}`,
-                            background: dragging ? '#eff6ff' : 'linear-gradient(145deg,#f8faff,#eef2ff)',
-                            borderRadius: '20px',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            justifyContent: 'center', gap: '16px',
-                            padding: '44px 24px',
-                            transition: 'all .2s ease',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <div style={{
-                            width: '72px', height: '72px', borderRadius: '20px',
-                            background: 'linear-gradient(135deg,#dbeafe,#e0e7ff)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 4px 20px rgba(37,99,235,.2)',
-                        }}>
-                            <Upload style={{ width: '32px', height: '32px', color: '#2563eb' }} />
-                        </div>
-
-                        <div style={{ textAlign: 'center' }}>
-                            <p style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '4px' }}>
-                                Glisse ton fichier ici
-                            </p>
-                            <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                PDF, DOCX ou TXT · Jusqu'à 20 Mo
-                            </p>
-                        </div>
-
-                        <label style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '8px',
-                            padding: '10px 22px',
-                            background: 'linear-gradient(135deg,#2563eb,#4f46e5)',
-                            color: '#fff', fontSize: '0.85rem', fontWeight: 600,
-                            borderRadius: '12px', cursor: 'pointer',
-                            boxShadow: '0 4px 14px rgba(37,99,235,.35)',
-                        }}>
-                            <Upload style={{ width: '16px', height: '16px' }} />
-                            Parcourir les fichiers
-                            <input type="file" className="hidden" accept=".pdf,.doc,.docx,.txt" />
-                        </label>
-                    </div>
-                </div>
-            </section>
-
             {/* ════════ FEATURES ════════ */}
             <section id="features" className="py-20 px-6 bg-surface">
                 <div className="max-w-6xl mx-auto">
@@ -292,7 +231,7 @@ export default function LandingPage() {
                         {[
                             { step: '01', icon: Upload, title: 'Importez votre document', desc: "Glissez-déposez votre PDF, DOCX ou TXT. Notre IA analyse et indexe le contenu en quelques secondes.", color: 'bg-blue-500' },
                             { step: '02', icon: Brain, title: "L'IA génère vos ressources", desc: "Résumés, fiches de révision et quiz sont créés automatiquement à partir de vos documents.", color: 'bg-indigo-500' },
-                            { step: '03', icon: CheckCircle, title: 'Révisez et progressez', desc: "Utilisez l'assistant pour vos questions, testez-vous avec les quiz et suivez votre progression.", color: 'bg-emerald-500' },
+                            { step: '03', icon: CheckCircle, title: 'Révisez et progressez', desc: "Utilisez l'assistant pour vos questions, testez-vous avec les quiz.", color: 'bg-emerald-500' },
                         ].map((item, i) => (
                             <div key={i} className="text-center group">
                                 <div className={`w-16 h-16 rounded-2xl ${item.color} flex items-center justify-center mx-auto mb-6 shadow-soft group-hover:shadow-glow transition-all duration-300 group-hover:scale-105`}>
@@ -334,14 +273,14 @@ export default function LandingPage() {
                                 style={{ background: 'linear-gradient(135deg,#2563eb,#4f46e5)' }}>
                                 <GraduationCap className="w-4 h-4 text-white" />
                             </div>
-                            <span className="font-bold text-gray-800">ReviseAI</span>
+                            <span className="font-bold text-gray-800">AI Study</span>
                         </div>
                         <div className="flex gap-6 text-sm">
                             <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Conditions</a>
                             <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Confidentialité</a>
                             <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors font-medium">Contact</a>
                         </div>
-                        <p className="text-sm text-gray-700">© 2026 ReviseAI. Tous droits réservés.</p>
+                        <p className="text-sm text-gray-700">© 2026 AI Study. Tous droits réservés.</p>
                     </div>
                 </div>
             </footer>

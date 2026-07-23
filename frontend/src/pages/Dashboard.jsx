@@ -13,7 +13,7 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-                        Bonjour 👋
+                        Bonjour
                     </h1>
                     <p className="text-gray-500 mt-1 text-sm">
                         Continuez votre progression — vous avancez très bien !

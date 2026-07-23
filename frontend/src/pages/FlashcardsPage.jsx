@@ -140,14 +140,6 @@ export default function FlashcardsPage() {
                     <p className="text-gray-500 text-sm mt-1">{filtered.length} fiche{filtered.length > 1 ? 's' : ''} disponible{filtered.length > 1 ? 's' : ''}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => { setShowFavOnly(!showFavOnly); setCurrentIndex(0); }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all
-              ${showFavOnly ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-                    >
-                        <Star className={`w-4 h-4 ${showFavOnly ? 'text-amber-500 fill-amber-500' : ''}`} />
-                        Favoris
-                    </button>
                     <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                         <button onClick={() => setViewMode('cards')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === 'cards' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>
                             Cartes
