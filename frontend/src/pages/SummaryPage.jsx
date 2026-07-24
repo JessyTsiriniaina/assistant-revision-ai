@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     FileText, Clock, User, Calendar, Copy, Download,
     RefreshCw, ChevronDown, ChevronUp, Lightbulb, Hash,
-    BookOpen, CheckCircle, Zap, FlaskConical, Eye, Star
+    BookOpen, CheckCircle, Zap, FlaskConical, Eye, Star, Loader2
 } from 'lucide-react';
-import { mockSummaries, mockDocuments } from '../data/mockData';
 import { useToast } from '../context/ToastContext';
+import { fetchDocuments, generateSummary } from '../services/api';
 
 const TABS = [
     { id: 'overview', label: 'Vue d\'ensemble', icon: Eye },
@@ -24,9 +24,9 @@ function SummaryContent({ tab, summary }) {
                     <p className="text-gray-700 leading-relaxed text-base">{summary.overview}</p>
                     <div className="grid sm:grid-cols-3 gap-4 pt-2">
                         {[
-                            { label: 'Concepts', value: summary.concepts.length, color: 'text-blue-600 bg-blue-50' },
-                            { label: 'Définitions', value: summary.definitions.length, color: 'text-purple-600 bg-purple-50' },
-                            { label: 'Formules', value: summary.formulas.length, color: 'text-emerald-600 bg-emerald-50' },
+                            { label: 'Concepts', value: summary.concepts?.length || 0, color: 'text-blue-600 bg-blue-50' },
+                            { label: 'Définitions', value: summary.definitions?.length || 0, color: 'text-purple-600 bg-purple-50' },
+                            { label: 'Formules', value: summary.formulas?.length || 0, color: 'text-emerald-600 bg-emerald-50' },
                         ].map(s => (
                             <div key={s.label} className={`${s.color} rounded-xl p-4 text-center`}>
                                 <p className={`text-3xl font-black ${s.color.split(' ')[0]}`}>{s.value}</p>
@@ -39,7 +39,7 @@ function SummaryContent({ tab, summary }) {
         case 'concepts':
             return (
                 <ul className="space-y-3">
-                    {summary.concepts.map((c, i) => (
+                    {(summary.concepts || []).map((c, i) => (
                         <li key={i} className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
                             <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                                 <span className="text-white text-xs font-bold">{i + 1}</span>
@@ -52,13 +52,13 @@ function SummaryContent({ tab, summary }) {
         case 'definitions':
             return (
                 <div className="space-y-3">
-                    {summary.definitions.map((d, i) => (
+                    {(summary.definitions || []).map((d, i) => (
                         <div key={i} className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
                             <div className="flex items-center gap-2 mb-2">
                                 <Hash className="w-4 h-4 text-purple-500" />
                                 <span className="font-bold text-gray-900 text-sm">{d.term}</span>
                             </div>
-                            <p className="text-gray-600 text-sm leading-relaxed pl-6">{d.def}</p>
+                            <p className="text-gray-600 text-sm leading-relaxed pl-6">{d.definition}</p>
                         </div>
                     ))}
                 </div>
@@ -66,7 +66,7 @@ function SummaryContent({ tab, summary }) {
         case 'formulas':
             return (
                 <div className="space-y-3">
-                    {summary.formulas.map((f, i) => (
+                    {(summary.formulas || []).map((f, i) => (
                         <div key={i} className="p-4 bg-gray-900 rounded-xl">
                             <p className="text-gray-400 text-xs mb-2 font-medium">{f.name}</p>
                             <p className="text-emerald-400 font-mono text-base font-bold">{f.formula}</p>
@@ -77,7 +77,7 @@ function SummaryContent({ tab, summary }) {
         case 'examples':
             return (
                 <ul className="space-y-3">
-                    {summary.examples.map((ex, i) => (
+                    {(summary.examples || []).map((ex, i) => (
                         <li key={i} className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
                             <Zap className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                             <span className="text-gray-800 text-sm">{ex}</span>
@@ -88,7 +88,7 @@ function SummaryContent({ tab, summary }) {
         case 'keypoints':
             return (
                 <ul className="space-y-3">
-                    {summary.keyPoints.map((kp, i) => (
+                    {(summary.keyPoints || []).map((kp, i) => (
                         <li key={i} className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
                             <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                             <span className="text-gray-800 text-sm font-medium">{kp}</span>
@@ -104,25 +104,46 @@ function SummaryContent({ tab, summary }) {
 export default function SummaryPage() {
     const { addToast } = useToast();
     const [activeTab, setActiveTab] = useState('overview');
-    const [selectedDoc, setSelectedDoc] = useState(mockDocuments[0]);
+    const [documents, setDocuments] = useState([]);
+    const [selectedDocId, setSelectedDocId] = useState(null);
+    const [summary, setSummary] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
-    const summary = mockSummaries[0];
+    const [loadingDocs, setLoadingDocs] = useState(true);
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(summary.overview);
-        addToast('Contenu copié dans le presse-papiers !', 'success');
-    };
+    useEffect(() => {
+        fetchDocuments()
+            .then(list => {
+                setDocuments(list);
+                if (list.length > 0) setSelectedDocId(list[0].id);
+            })
+            .catch(() => addToast('Impossible de charger les documents', 'error'))
+            .finally(() => setLoadingDocs(false));
+    }, []);
 
-    const handleRegenerate = async () => {
+    const loadSummary = async (docId) => {
+        if (!docId) return;
         setIsGenerating(true);
-        await new Promise(r => setTimeout(r, 2000));
+        try {
+            const result = await generateSummary(docId);
+            setSummary(result);
+        } catch {
+            addToast('Erreur lors de la génération du résumé', 'error');
+        }
         setIsGenerating(false);
-        addToast('Résumé regénéré avec succès !', 'success');
     };
+
+    useEffect(() => {
+        if (selectedDocId) loadSummary(selectedDocId);
+    }, [selectedDocId]);
+
+    const handleRegenerate = () => {
+        if (selectedDocId) loadSummary(selectedDocId);
+    };
+
+    const selectedDoc = documents.find(d => d.id === selectedDocId);
 
     return (
         <div className="p-6 lg:p-8 max-w-5xl mx-auto animate-fade-in">
-            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -133,56 +154,54 @@ export default function SummaryPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button onClick={handleRegenerate} disabled={isGenerating} className="btn-primary text-sm py-2">
+                    <button onClick={handleRegenerate} disabled={isGenerating || !selectedDocId} className="btn-primary text-sm py-2">
                         <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
                         {isGenerating ? 'Génération...' : 'Régénérer'}
                     </button>
                 </div>
             </div>
 
-            {/* Document selector */}
             <div className="flex gap-3 mb-6 flex-wrap">
-                {mockDocuments.map(doc => (
+                {loadingDocs ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                ) : documents.map(doc => (
                     <button
                         key={doc.id}
-                        onClick={() => setSelectedDoc(doc)}
+                        onClick={() => setSelectedDocId(doc.id)}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border
-              ${selectedDoc.id === doc.id
+              ${selectedDocId === doc.id
                                 ? 'bg-primary-600 text-white border-primary-600 shadow-glow'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:bg-primary-50'
                             }`}
                     >
-                        <span>{doc.icon}</span>
-                        <span className="hidden sm:block">{doc.name.split(' ').slice(0, 3).join(' ')}</span>
+                        <span>📄</span>
+                        <span className="hidden sm:block">{doc.filename.replace(/\.[^/.]+$/, '').split(' ').slice(0, 3).join(' ')}</span>
                     </button>
                 ))}
             </div>
 
-            {/* Summary card */}
             <div className="card mb-6">
-                {/* Meta */}
                 <div className="flex flex-wrap items-center gap-4 mb-6 pb-6 border-b border-gray-100">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">{selectedDoc.name}</h2>
-                        <p className="text-primary-600 font-medium text-sm mt-1">{selectedDoc.subject}</p>
+                        <h2 className="text-xl font-bold text-gray-900">{selectedDoc ? selectedDoc.filename.replace(/\.[^/.]+$/, '') : 'Sélectionnez un document'}</h2>
+                        <p className="text-primary-600 font-medium text-sm mt-1">{selectedDoc ? selectedDoc.status : ''}</p>
                     </div>
                     <div className="flex items-center gap-4 ml-auto text-xs text-gray-500">
                         <div className="flex items-center gap-1.5">
                             <User className="w-3.5 h-3.5" />
-                            <span>{summary.author}</span>
+                            <span>{summary?.author || 'Assistant IA'}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5" />
-                            <span>{summary.date}</span>
+                            <span>{summary?.date || new Date().toLocaleDateString('fr-FR')}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5" />
-                            <span>{summary.readingTime} de lecture</span>
+                            <span>{summary?.readingTime || '5 min'} de lecture</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex gap-1 flex-wrap mb-6 bg-gray-50 p-1 rounded-xl">
                     {TABS.map(({ id, label, icon: Icon }) => (
                         <button
@@ -197,13 +216,19 @@ export default function SummaryPage() {
                     ))}
                 </div>
 
-                {/* Content */}
                 <div className="animate-fade-in">
-                    <SummaryContent tab={activeTab} summary={summary} />
+                    {isGenerating ? (
+                        <div className="flex items-center justify-center py-16">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                        </div>
+                    ) : summary ? (
+                        <SummaryContent tab={activeTab} summary={summary} />
+                    ) : (
+                        <p className="text-center text-gray-400 py-16">Sélectionnez un document pour générer un résumé</p>
+                    )}
                 </div>
             </div>
 
-            {/* Tip */}
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl p-4">
                 <Lightbulb className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>

@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import {
     Brain, Clock, Trophy, CheckCircle, XCircle, ChevronRight,
     RotateCcw, Star, TrendingUp, AlertCircle, Lightbulb, Play,
-    Timer, Target
+    Timer, Target, Loader2
 } from 'lucide-react';
-import { mockQuizzes } from '../data/mockData';
 import { useToast } from '../context/ToastContext';
+import { generateQuiz, submitQuiz, fetchDocuments } from '../services/api';
 
 function QuizStart({ quiz, onStart }) {
     return (
@@ -54,7 +54,6 @@ function QuizResults({ quiz, answers, timeSpent, onRestart }) {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6 animate-slide-up">
-            {/* Score card */}
             <div className="card text-center shadow-soft">
                 <div className={`w-24 h-24 ${bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
                     <span className={`text-3xl font-black ${text}`}>{score}%</span>
@@ -87,7 +86,6 @@ function QuizResults({ quiz, answers, timeSpent, onRestart }) {
                 </div>
             </div>
 
-            {/* Question review */}
             <div className="card shadow-soft">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -121,23 +119,31 @@ function QuizResults({ quiz, answers, timeSpent, onRestart }) {
 
 export default function QuizPage() {
     const { addToast } = useToast();
-    const quiz = mockQuizzes[0];
-
-    const [phase, setPhase] = useState('start'); // 'start' | 'quiz' | 'results'
+    const [quiz, setQuiz] = useState(null);
+    const [phase, setPhase] = useState('select');
     const [currentQ, setCurrentQ] = useState(0);
     const [answers, setAnswers] = useState([]);
     const [selected, setSelected] = useState(null);
     const [revealed, setRevealed] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(quiz.timeLimit);
+    const [timeLeft, setTimeLeft] = useState(600);
     const [timeSpent, setTimeSpent] = useState(0);
+    const [docs, setDocs] = useState([]);
+    const [generating, setGenerating] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        if (phase !== 'quiz') return;
+        fetchDocuments()
+            .then(list => setDocs(list.filter(d => d.status === 'indexed')))
+            .catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        if (phase !== 'quiz' || !quiz) return;
         const interval = setInterval(() => {
             setTimeLeft(t => {
                 if (t <= 1) {
                     clearInterval(interval);
-                    setPhase('results');
+                    handleEndQuiz();
                     return 0;
                 }
                 return t - 1;
@@ -145,7 +151,45 @@ export default function QuizPage() {
             setTimeSpent(s => s + 1);
         }, 1000);
         return () => clearInterval(interval);
-    }, [phase]);
+ }, [phase, quiz]);
+
+    const handleEndQuiz = async () => {
+        if (submitting) return;
+        setSubmitting(true);
+        try {
+            const result = await submitQuiz(quiz.id, [...answers, selected]);
+            setQuiz(prev => ({ ...prev, result }));
+            setPhase('results');
+        } catch {
+            addToast('Erreur lors de la soumission du quiz', 'error');
+            setPhase('results');
+        }
+        setSubmitting(false);
+    };
+
+    const handleStart = async () => {
+        const indexed = docs.filter(d => d.status === 'indexed');
+        if (indexed.length === 0) {
+            addToast('Aucun document indexé disponible pour générer un quiz', 'warning');
+            return;
+        }
+        const doc = indexed[0];
+        setGenerating(true);
+        try {
+            const q = await generateQuiz(doc.id, 5, 'moyen');
+            setQuiz(q);
+            setPhase('start');
+            setTimeLeft(q.timeLimit || 600);
+            setCurrentQ(0);
+            setAnswers([]);
+            setSelected(null);
+            setRevealed(false);
+            setTimeSpent(0);
+        } catch {
+            addToast('Erreur lors de la génération du quiz', 'error');
+        }
+        setGenerating(false);
+    };
 
     const handleSelect = (idx) => {
         if (revealed) return;
@@ -167,26 +211,57 @@ export default function QuizPage() {
         setRevealed(false);
 
         if (currentQ + 1 >= quiz.totalQuestions) {
-            setPhase('results');
+            handleEndQuiz();
         } else {
             setCurrentQ(currentQ + 1);
         }
     };
 
     const handleRestart = () => {
-        setPhase('start');
+        setPhase('select');
+        setQuiz(null);
         setCurrentQ(0);
         setAnswers([]);
         setSelected(null);
         setRevealed(false);
-        setTimeLeft(quiz.timeLimit);
+        setTimeLeft(600);
         setTimeSpent(0);
     };
 
-    const progress = ((currentQ) / quiz.totalQuestions) * 100;
+    const progress = quiz ? ((currentQ) / quiz.totalQuestions) * 100 : 0;
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
-    const q = quiz.questions[currentQ];
+    const q = quiz?.questions?.[currentQ];
+
+    if (generating) {
+        return (
+            <div className="p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                </div>
+            </div>
+        );
+    }
+
+    if (phase === 'select') {
+        return (
+            <div className="p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
+                <div className="flex items-center gap-2 mb-6">
+                    <Brain className="w-6 h-6 text-amber-600" />
+                    <h1 className="text-2xl font-bold text-gray-900">Quiz</h1>
+                </div>
+                <div className="card max-w-2xl mx-auto text-center py-16 shadow-soft">
+                    <Brain className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Générer un quiz</h2>
+                    <p className="text-gray-500 mb-6">Créez un quiz à partir de vos documents indexés</p>
+                    <button onClick={handleStart} disabled={docs.length === 0} className="btn-primary mx-auto justify-center shadow-glow disabled:opacity-40">
+                        <Brain className="w-5 h-5" />
+                        Générer un quiz
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
@@ -195,11 +270,10 @@ export default function QuizPage() {
                 <h1 className="text-2xl font-bold text-gray-900">Quiz</h1>
             </div>
 
-            {phase === 'start' && <QuizStart quiz={quiz} onStart={() => setPhase('quiz')} />}
+            {phase === 'start' && quiz && <QuizStart quiz={quiz} onStart={() => setPhase('quiz')} />}
 
             {phase === 'quiz' && q && (
                 <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
-                    {/* Quiz header */}
                     <div className="card shadow-soft">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-bold text-gray-600">
@@ -219,7 +293,6 @@ export default function QuizPage() {
                         </div>
                     </div>
 
-                    {/* Question */}
                     <div className="card shadow-soft">
                         <h2 className="text-lg font-bold text-gray-900 mb-6 leading-relaxed">{q.question}</h2>
 
@@ -251,7 +324,6 @@ export default function QuizPage() {
                             })}
                         </div>
 
-                        {/* Explanation */}
                         {revealed && (
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 animate-slide-up">
                                 <div className="flex items-center gap-2 mb-2">
@@ -269,9 +341,10 @@ export default function QuizPage() {
                                     Valider
                                 </button>
                             ) : (
-                                <button onClick={handleNext} className="flex-1 btn-primary justify-center">
-                                    {currentQ + 1 >= quiz.totalQuestions ? 'Voir les résultats' : 'Question suivante'}
-                                    <ChevronRight className="w-4 h-4" />
+                                <button onClick={handleNext} disabled={submitting} className="flex-1 btn-primary justify-center disabled:opacity-40">
+                                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                                        currentQ + 1 >= quiz.totalQuestions ? 'Voir les résultats' : 'Question suivante'}
+                                    {!submitting && <ChevronRight className="w-4 h-4" />}
                                 </button>
                             )}
                         </div>
@@ -279,7 +352,7 @@ export default function QuizPage() {
                 </div>
             )}
 
-            {phase === 'results' && (
+            {phase === 'results' && quiz && (
                 <QuizResults quiz={quiz} answers={answers} timeSpent={timeSpent} onRestart={handleRestart} />
             )}
         </div>

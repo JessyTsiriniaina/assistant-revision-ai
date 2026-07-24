@@ -1,23 +1,32 @@
-import { useState } from 'react';
-import { FileText, BookMarked, Brain, Plus, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, BookMarked, Brain, Plus, Zap, Loader2 } from 'lucide-react';
 import UploadZone from '../components/upload/UploadZone';
 import { useNavigate } from 'react-router-dom';
+import { fetchProgress } from '../services/api';
 
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const [showUpload, setShowUpload] = useState(false);
+    const [progress, setProgress] = useState(null);
+
+    useEffect(() => {
+        fetchProgress()
+            .then(setProgress)
+            .catch(() => {});
+    }, []);
 
     return (
         <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
-            {/* Welcome */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
                         Bonjour
                     </h1>
                     <p className="text-gray-500 mt-1 text-sm">
-                        Continuez votre progression — vous avancez très bien !
+                        {progress
+                            ? `${progress.total_documents} document${progress.total_documents > 1 ? 's' : ''} importé${progress.total_documents > 1 ? 's' : ''} · ${progress.total_quizzes_taken} quiz effectué${progress.total_quizzes_taken > 1 ? 's' : ''}`
+                            : 'Continuez votre progression — vous avancez très bien !'}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -31,7 +40,6 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Quick actions */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                     { label: 'Nouveau résumé', icon: FileText, to: '/app/summaries', color: 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-100' },
@@ -50,7 +58,6 @@ export default function Dashboard() {
                 ))}
             </div>
 
-            {/* Upload zone (collapsible) */}
             {showUpload && (
                 <div className="card animate-slide-up">
                     <div className="flex items-center justify-between mb-4">

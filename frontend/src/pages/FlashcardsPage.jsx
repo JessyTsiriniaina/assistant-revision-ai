@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     BookMarked, Star, Download, Printer, ChevronLeft,
     ChevronRight, Filter, Search, RotateCcw, Lightbulb,
-    BookOpen, Zap, Eye
+    BookOpen, Zap, Eye, Loader2
 } from 'lucide-react';
-import { mockFlashcards, colorMap } from '../data/mockData';
+import { colorMap } from '../data/mockData';
 import { useToast } from '../context/ToastContext';
+import { fetchFlashcards, toggleFlashcardFavorite, generateFlashcards, fetchDocuments } from '../services/api';
 
 function FlashCard({ card, isFlipped, onFlip, onFavorite }) {
     const c = colorMap[card.color] || colorMap.blue;
@@ -18,7 +19,6 @@ function FlashCard({ card, isFlipped, onFlip, onFavorite }) {
     return (
         <div className="flip-card w-full max-w-2xl mx-auto" style={{ height: '340px' }}>
             <div className={`flip-card-inner w-full h-full ${isFlipped ? 'flipped' : ''}`}>
-                {/* Front */}
                 <div className="flip-card-front w-full h-full">
                     <div className={`w-full h-full card flex flex-col border-2 ${c.border} cursor-pointer shadow-card hover:shadow-soft`} onClick={onFlip}>
                         <div className={`h-1.5 rounded-t-2xl -mx-6 -mt-6 mb-4 ${c.dot}`} />
@@ -52,7 +52,6 @@ function FlashCard({ card, isFlipped, onFlip, onFavorite }) {
                     </div>
                 </div>
 
-                {/* Back */}
                 <div className="flip-card-back w-full h-full">
                     <div className={`w-full h-full card flex flex-col bg-gradient-to-br from-white to-${card.color}-50/30 border-2 ${c.border} cursor-pointer overflow-y-auto`} onClick={onFlip}>
                         <div className={`h-1.5 rounded-t-2xl -mx-6 -mt-6 mb-4 bg-gradient-blue`} />
@@ -96,14 +95,25 @@ function FlashCard({ card, isFlipped, onFlip, onFavorite }) {
 
 export default function FlashcardsPage() {
     const { addToast } = useToast();
-    const [cards, setCards] = useState(mockFlashcards);
+    const [cards, setCards] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [filterSubject, setFilterSubject] = useState('Tous');
     const [showFavOnly, setShowFavOnly] = useState(false);
-    const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'grid'
+    const [viewMode, setViewMode] = useState('cards');
+    const [docs, setDocs] = useState([]);
 
-    const subjects = ['Tous', ...new Set(mockFlashcards.map(c => c.subject))];
+    useEffect(() => {
+        fetchFlashcards()
+            .then(data => setCards(data))
+            .catch(() => addToast('Impossible de charger les fiches', 'error'))
+            .finally(() => setLoading(false));
+        fetchDocuments().then(setDocs).catch(() => {});
+    }, []);
+
+    const subjects = ['Tous', ...new Set(cards.map(c => c.subject))];
 
     const filtered = cards.filter(c => {
         const matchSub = filterSubject === 'Tous' || c.subject === filterSubject;
@@ -123,14 +133,38 @@ export default function FlashcardsPage() {
         setTimeout(() => setCurrentIndex(i => Math.max(i - 1, 0)), 150);
     };
 
-    const toggleFavorite = (id) => {
-        setCards(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
-        addToast(cards.find(c => c.id === id)?.isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris ⭐', 'success');
+    const toggleFavorite = async (id) => {
+        const card = cards.find(c => c.id === id);
+        if (!card) return;
+        const newFav = !card.isFavorite;
+        try {
+            const updated = await toggleFlashcardFavorite(id, newFav);
+            setCards(prev => prev.map(c => c.id === id ? updated : c));
+            addToast(newFav ? 'Ajouté aux favoris ⭐' : 'Retiré des favoris', 'success');
+        } catch {
+            addToast('Erreur lors de la mise à jour', 'error');
+        }
+    };
+
+    const handleGenerate = async () => {
+        const indexedDoc = docs.find(d => d.status === 'indexed');
+        if (!indexedDoc) {
+            addToast('Aucun document indexé disponible', 'warning');
+            return;
+        }
+        setGenerating(true);
+        try {
+            const newCards = await generateFlashcards(indexedDoc.id, 5);
+            setCards(prev => [...newCards, ...prev]);
+            addToast('Fiches générées avec succès !', 'success');
+        } catch {
+            addToast('Erreur lors de la génération', 'error');
+        }
+        setGenerating(false);
     };
 
     return (
         <div className="p-6 lg:p-8 max-w-5xl mx-auto animate-fade-in">
-            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -140,6 +174,10 @@ export default function FlashcardsPage() {
                     <p className="text-gray-500 text-sm mt-1">{filtered.length} fiche{filtered.length > 1 ? 's' : ''} disponible{filtered.length > 1 ? 's' : ''}</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm py-2">
+                        {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                        {generating ? 'Génération...' : 'Générer'}
+                    </button>
                     <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                         <button onClick={() => setViewMode('cards')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === 'cards' ? 'bg-white shadow-sm' : 'text-gray-500'}`}>
                             Cartes
@@ -151,7 +189,6 @@ export default function FlashcardsPage() {
                 </div>
             </div>
 
-            {/* Subject filter */}
             <div className="flex gap-2 mb-6 flex-wrap">
                 {subjects.map(s => (
                     <button
@@ -165,15 +202,16 @@ export default function FlashcardsPage() {
                 ))}
             </div>
 
-            {filtered.length === 0 ? (
+            {loading ? (
+                <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
+            ) : filtered.length === 0 ? (
                 <div className="text-center py-20">
                     <BookMarked className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune fiche trouvée</h3>
-                    <p className="text-sm text-gray-400">Ajustez vos filtres pour voir plus de fiches</p>
+                    <p className="text-sm text-gray-400">Ajustez vos filtres ou générez de nouvelles fiches</p>
                 </div>
             ) : viewMode === 'cards' ? (
                 <div className="space-y-6">
-                    {/* Progress indicator */}
                     <div className="flex items-center justify-center gap-3">
                         <button onClick={goPrev} disabled={currentIndex === 0} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 disabled:opacity-30 transition-colors">
                             <ChevronLeft className="w-5 h-5 text-gray-600" />
@@ -187,7 +225,6 @@ export default function FlashcardsPage() {
                         </button>
                     </div>
 
-                    {/* Progress bar */}
                     <div className="w-full max-w-2xl mx-auto bg-gray-100 rounded-full h-1.5">
                         <div
                             className="bg-primary-600 h-1.5 rounded-full progress-bar"
@@ -195,7 +232,6 @@ export default function FlashcardsPage() {
                         />
                     </div>
 
-                    {/* The card */}
                     {current && (
                         <FlashCard
                             card={current}
@@ -205,7 +241,6 @@ export default function FlashcardsPage() {
                         />
                     )}
 
-                    {/* Navigation buttons */}
                     <div className="flex justify-center gap-4">
                         <button
                             onClick={goPrev}
@@ -233,7 +268,6 @@ export default function FlashcardsPage() {
                     </div>
                 </div>
             ) : (
-                // Grid view
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filtered.map(card => {
                         const c = colorMap[card.color] || colorMap.blue;

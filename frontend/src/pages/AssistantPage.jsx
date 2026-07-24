@@ -1,20 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-    Send, Paperclip, Plus, MessageCircle,
+    Send, Plus, MessageCircle,
     Loader2, GraduationCap, ChevronRight, Trash2, Bot, User
 } from 'lucide-react';
-import { mockConversations } from '../data/mockData';
 import { useToast } from '../context/ToastContext';
+import {
+    fetchConversations, fetchConversation, deleteConversation, sendChatMessage
+} from '../services/api';
 
 function MessageBubble({ msg }) {
     const isUser = msg.role === 'user';
     return (
         <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''} animate-slide-up`}>
-            {/* Avatar */}
             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isUser ? 'bg-primary-600' : 'bg-gradient-to-br from-indigo-500 to-primary-600'}`}>
                 {isUser ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
             </div>
-            {/* Bubble */}
             <div className={`max-w-xs sm:max-w-lg lg:max-w-2xl ${isUser ? 'chat-user' : 'chat-ai'}`}>
                 {msg.content.split('\n').map((line, i) => {
                     if (line.startsWith('**') && line.endsWith('**')) {
@@ -23,7 +23,6 @@ function MessageBubble({ msg }) {
                     if (line.startsWith('- ')) {
                         return <li key={i} className="ml-4 list-disc text-sm">{line.slice(2)}</li>;
                     }
-                    // Handle inline bold
                     const parts = line.split(/(\*\*[^*]+\*\*)/g);
                     return (
                         <p key={i} className="text-sm leading-relaxed mb-1">
@@ -36,7 +35,7 @@ function MessageBubble({ msg }) {
                     );
                 })}
                 <p className={`text-xs mt-2 ${isUser ? 'text-blue-200' : 'text-gray-400'}`}>
-                    {new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(msg.created_at || msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
             </div>
         </div>
@@ -60,14 +59,34 @@ function TypingIndicator() {
 
 export default function AssistantPage() {
     const { addToast } = useToast();
-    const [conversations, setConversations] = useState(mockConversations);
-    const [activeConvId, setActiveConvId] = useState(mockConversations[0]?.id);
+    const [conversations, setConversations] = useState([]);
+    const [activeConvId, setActiveConvId] = useState(null);
+    const [activeConv, setActiveConv] = useState(null);
+    const [loadingConv, setLoadingConv] = useState(false);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [loadingInit, setLoadingInit] = useState(true);
     const messagesEndRef = useRef(null);
 
-    const activeConv = conversations.find(c => c.id === activeConvId);
+    useEffect(() => {
+        fetchConversations()
+            .then(list => {
+                setConversations(list);
+                if (list.length > 0) setActiveConvId(list[0].id);
+            })
+            .catch(() => addToast('Impossible de charger les conversations', 'error'))
+            .finally(() => setLoadingInit(false));
+    }, []);
+
+    useEffect(() => {
+        if (!activeConvId) { setActiveConv(null); return; }
+        setLoadingConv(true);
+        fetchConversation(activeConvId)
+            .then(conv => setActiveConv(conv))
+            .catch(() => addToast('Erreur lors du chargement de la conversation', 'error'))
+            .finally(() => setLoadingConv(false));
+    }, [activeConvId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -75,71 +94,51 @@ export default function AssistantPage() {
 
     const sendMessage = async () => {
         if (!input.trim() || isTyping) return;
-        const userMsg = {
-            id: `m-${Date.now()}`,
-            role: 'user',
-            content: input.trim(),
-            timestamp: new Date().toISOString(),
-        };
+        const text = input.trim();
         setInput('');
         setIsTyping(true);
 
-        setConversations(prev => prev.map(c =>
-            c.id === activeConvId
-                ? { ...c, messages: [...c.messages, userMsg], lastMessage: userMsg.content }
-                : c
-        ));
+        const backendId = typeof activeConvId === 'number' ? activeConvId : null;
 
-        // Simulate AI response
-        await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
+        try {
+            const result = await sendChatMessage(backendId, text);
 
-        const responses = [
-            "D'après vos documents, ce concept est fondamental. **Voici l'explication :**\n\nL'idée principale repose sur trois piliers essentiels :\n- **Premier principe** : la structure de base\n- **Deuxième principe** : l'application pratique\n- **Troisième principe** : les cas particuliers\n\nVoulez-vous que j'approfondisse l'un de ces points ?",
-            "Excellente question ! Selon vos documents, on distingue deux approches complémentaires.\n\n**Approche théorique :** Elle définit les concepts fondamentaux qui permettent de modéliser le problème de manière abstraite.\n\n**Approche pratique :** Elle propose des implémentations concrètes, éprouvées en conditions réelles.",
-            "Je vous réponds en me basant exclusivement sur votre base de connaissances. **Points clés :**\n\nCe sujet couvre plusieurs aspects importants que vous devrez maîtriser. La notion centrale à retenir est que tout dépend du contexte d'application.",
-        ];
-
-        const aiMsg = {
-            id: `m-${Date.now() + 1}`,
-            role: 'assistant',
-            content: responses[Math.floor(Math.random() * responses.length)],
-            timestamp: new Date().toISOString(),
-        };
-
-        setConversations(prev => prev.map(c =>
-            c.id === activeConvId
-                ? { ...c, messages: [...c.messages, aiMsg] }
-                : c
-        ));
+            if (!backendId) {
+                setConversations(prev => {
+                    const exists = prev.find(c => c.id === result.conversation_id);
+                    if (exists) return prev;
+                    return [{ id: result.conversation_id, title: text.slice(0, 50) }, ...prev];
+                });
+                setActiveConvId(result.conversation_id);
+            } else {
+                const full = await fetchConversation(result.conversation_id);
+                setActiveConv(full);
+            }
+        } catch {
+            addToast('Erreur lors de l\'envoi du message', 'error');
+        }
         setIsTyping(false);
     };
 
     const newConversation = () => {
-        const newConv = {
-            id: `conv-${Date.now()}`,
-            title: 'Nouvelle conversation',
-            lastMessage: '',
-            lastMessageAt: new Date().toISOString(),
-            messageCount: 0,
-            messages: [
-                {
-                    id: 'm-init',
-                    role: 'assistant',
-                    content: `Bonjour ! Je suis votre assistant IA. Posez-moi vos questions et je vous répondrai en me basant uniquement sur l'ensemble des documents de votre base de connaissances. 📚`,
-                    timestamp: new Date().toISOString(),
-                }
-            ],
-        };
-        setConversations(prev => [newConv, ...prev]);
-        setActiveConvId(newConv.id);
-        addToast('Nouvelle conversation créée', 'success');
+        setActiveConvId(null);
+        setActiveConv(null);
+        addToast('Nouvelle conversation démarrée', 'success');
     };
 
-    const deleteConv = (id, e) => {
+    const deleteConv = async (id, e) => {
         e.stopPropagation();
-        setConversations(prev => prev.filter(c => c.id !== id));
-        if (activeConvId === id) setActiveConvId(conversations.find(c => c.id !== id)?.id);
-        addToast('Conversation supprimée', 'info');
+        try {
+            await deleteConversation(id);
+            setConversations(prev => prev.filter(c => c.id !== id));
+            if (activeConvId === id) {
+                const next = conversations.find(c => c.id !== id);
+                setActiveConvId(next ? next.id : null);
+            }
+            addToast('Conversation supprimée', 'info');
+        } catch {
+            addToast('Erreur lors de la suppression', 'error');
+        }
     };
 
     const handleKeyDown = (e) => {
@@ -147,6 +146,15 @@ export default function AssistantPage() {
             e.preventDefault();
             sendMessage();
         }
+    };
+
+    const displayConv = activeConv || {
+        id: null, title: 'Nouvelle conversation',
+        messages: [{
+            id: 'm-init', role: 'assistant',
+            content: 'Bonjour ! Je suis votre assistant IA. Posez-moi vos questions et je vous répondrai en me basant uniquement sur l\'ensemble des documents de votre base de connaissances. 📚',
+            created_at: new Date().toISOString(),
+        }]
     };
 
     const suggestedQuestions = [
@@ -158,7 +166,6 @@ export default function AssistantPage() {
 
     return (
         <div className="flex h-full animate-fade-in overflow-hidden">
-            {/* Sidebar - Conversations */}
             <div className={`${sidebarOpen ? 'w-72' : 'w-0'} flex-shrink-0 border-r border-gray-100 bg-white flex flex-col transition-all duration-300 overflow-hidden`}>
                 <div className="p-4 border-b border-gray-100">
                     <div className="flex items-center justify-between mb-3">
@@ -174,7 +181,9 @@ export default function AssistantPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                    {conversations.map(conv => (
+                    {loadingInit ? (
+                        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+                    ) : conversations.map(conv => (
                         <div
                             key={conv.id}
                             onClick={() => setActiveConvId(conv.id)}
@@ -189,9 +198,6 @@ export default function AssistantPage() {
                                     <p className={`text-xs font-semibold truncate ${activeConvId === conv.id ? 'text-primary-700' : 'text-gray-800'}`}>
                                         {conv.title}
                                     </p>
-                                    {conv.lastMessage && (
-                                        <p className="text-xs text-gray-400 truncate mt-1">{conv.lastMessage.slice(0, 40)}...</p>
-                                    )}
                                 </div>
                                 <button
                                     onClick={(e) => deleteConv(conv.id, e)}
@@ -212,9 +218,7 @@ export default function AssistantPage() {
                 </div>
             </div>
 
-            {/* Main chat area */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Chat header */}
                 <div className="px-6 py-4 border-b border-gray-100 bg-white shadow-sm flex items-center gap-3">
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -235,9 +239,8 @@ export default function AssistantPage() {
                     </span>
                 </div>
 
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                    {activeConv?.messages.length === 0 || !activeConv ? (
+                    {activeConvId === null ? (
                         <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
                             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-primary-600 flex items-center justify-center mb-4 shadow-glow animate-float">
                                 <GraduationCap className="w-8 h-8 text-white" />
@@ -258,9 +261,13 @@ export default function AssistantPage() {
                                 ))}
                             </div>
                         </div>
+                    ) : loadingConv ? (
+                        <div className="h-full flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                        </div>
                     ) : (
                         <>
-                            {activeConv.messages.map(msg => (
+                            {displayConv.messages.map(msg => (
                                 <MessageBubble key={msg.id} msg={msg} />
                             ))}
                             {isTyping && <TypingIndicator />}
@@ -269,7 +276,6 @@ export default function AssistantPage() {
                     )}
                 </div>
 
-                {/* Input */}
                 <div className="p-4 border-t border-gray-100 bg-white">
                     <div className="flex items-end gap-3">
                         <div className="flex-1 relative">

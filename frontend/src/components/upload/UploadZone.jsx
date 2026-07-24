@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
-import { Upload, File, X, CheckCircle, AlertCircle, Loader2, Plus } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Upload, File, X, CheckCircle, Loader2, Plus } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
-import { mockDocuments, colorMap } from '../../data/mockData';
+import { colorMap } from '../../data/mockData';
+import { fetchDocuments, uploadDocument, deleteDocument } from '../../services/api';
 
 const ACCEPTED_FORMATS = ['.pdf', '.docx', '.txt'];
 const FORMAT_COLORS = {
@@ -10,30 +11,50 @@ const FORMAT_COLORS = {
     TXT: 'bg-gray-100 text-gray-700',
 };
 
+function formatExt(filename) {
+    const ext = filename.split('.').pop().toUpperCase();
+    return ext === 'MD' ? 'TXT' : ext;
+}
+
+function statusProgress(status) {
+    if (status === 'indexed') return 100;
+    if (status === 'processing') return 50;
+    if (status === 'failed') return 0;
+    return 20;
+}
+
+function statusLoading(status) {
+    return status === 'pending' || status === 'processing';
+}
+
 function UploadedFileRow({ doc, onRemove }) {
+    const progress = statusProgress(doc.status);
+    const loading = statusLoading(doc.status);
+    const fmt = formatExt(doc.filename);
+    const name = doc.filename.replace(/\.[^/.]+$/, '');
+    const icon = fmt === 'PDF' ? '📄' : fmt === 'DOCX' ? '📝' : '📃';
     const colors = colorMap[doc.color] || colorMap.blue;
     return (
         <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-card transition-shadow">
             <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center text-xl flex-shrink-0`}>
-                {doc.icon}
+                {icon}
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800 truncate">{doc.name}</p>
+                <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
                 <div className="flex items-center gap-3 mt-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${FORMAT_COLORS[doc.format]}`}>{doc.format}</span>
-                    <span className="text-xs text-gray-400">{doc.size}</span>
-                    <span className="text-xs text-gray-400">{doc.pages} pages</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${FORMAT_COLORS[fmt] || FORMAT_COLORS.TXT}`}>{fmt}</span>
+                    <span className="text-xs text-gray-400">{doc.num_chunks || 0} passages</span>
                 </div>
                 <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
                     <div
                         className="bg-primary-600 h-1.5 rounded-full progress-bar"
-                        style={{ width: `${doc.progress}%` }}
+                        style={{ width: `${progress}%` }}
                     />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{doc.progress}% analysé</p>
+                <p className="text-xs text-gray-400 mt-1">{progress}% analysé</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-                {doc.progress === 100 ? (
+                {!loading ? (
                     <CheckCircle className="w-5 h-5 text-emerald-500" />
                 ) : (
                     <Loader2 className="w-4 h-4 text-primary-500 animate-spin" />
@@ -52,7 +73,19 @@ function UploadedFileRow({ doc, onRemove }) {
 export default function UploadZone({ compact = false }) {
     const { addToast } = useToast();
     const [isDragging, setIsDragging] = useState(false);
-    const [files, setFiles] = useState(mockDocuments.slice(0, 3));
+    const [files, setFiles] = useState([]);
+    const [uploading, setUploading] = useState(false);
+
+    const loadFiles = useCallback(async () => {
+        try {
+            const data = await fetchDocuments();
+            setFiles(data);
+        } catch {
+            addToast('Impossible de charger les documents', 'error');
+        }
+    }, []);
+
+    useEffect(() => { loadFiles(); }, []);
 
     const handleDragOver = useCallback((e) => {
         e.preventDefault();
@@ -73,7 +106,7 @@ export default function UploadZone({ compact = false }) {
         processFiles(selectedFiles);
     };
 
-    const processFiles = (newFiles) => {
+    const processFiles = async (newFiles) => {
         const valid = newFiles.filter(f => {
             const ext = '.' + f.name.split('.').pop().toLowerCase();
             return ACCEPTED_FORMATS.includes(ext);
@@ -81,32 +114,29 @@ export default function UploadZone({ compact = false }) {
         if (valid.length < newFiles.length) {
             addToast('Certains fichiers ont un format non supporté', 'warning');
         }
-        if (valid.length > 0) {
-            const fakeDoc = {
-                id: `doc-new-${Date.now()}`,
-                name: valid[0].name.replace(/\.[^/.]+$/, ''),
-                subject: 'Non classé',
-                format: valid[0].name.split('.').pop().toUpperCase(),
-                size: `${(valid[0].size / 1024 / 1024).toFixed(1)} MB`,
-                pages: Math.floor(Math.random() * 50) + 10,
-                progress: Math.floor(Math.random() * 60) + 20,
-                color: 'blue',
-                icon: '📄',
-                tags: [],
-            };
-            setFiles(prev => [fakeDoc, ...prev]);
-            addToast(`"${fakeDoc.name}" importé avec succès !`, 'success');
+        if (valid.length === 0) return;
+
+        setUploading(true);
+        try {
+            for (const file of valid) {
+                await uploadDocument(file);
+                addToast(`"${file.name}" importé avec succès !`, 'success');
+            }
+            await loadFiles();
+        } catch {
+            addToast('Erreur lors de l\'import des documents', 'error');
         }
+        setUploading(false);
     };
 
-    const removeFile = (id) => {
-        setFiles(prev => prev.filter(f => f.id !== id));
-        addToast('Document supprimé', 'info');
-    };
-    
-    const handleUploadFile = (e)=>{
-      e.preventDefault();
-      const data = new FormData();
+    const removeFile = async (id) => {
+        try {
+            await deleteDocument(id);
+            setFiles(prev => prev.filter(f => f.id !== id));
+            addToast('Document supprimé', 'info');
+        } catch {
+            addToast('Erreur lors de la suppression', 'error');
+        }
     };
 
     return (
