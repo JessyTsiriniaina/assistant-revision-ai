@@ -7,6 +7,8 @@ import { useToast } from '../context/useToast';
 import {
     fetchConversations, fetchConversation, deleteConversation, sendChatMessage
 } from '../services/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 function MessageBubble({ msg }) {
     const isUser = msg.role === 'user';
@@ -16,24 +18,11 @@ function MessageBubble({ msg }) {
                 {isUser ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
             </div>
             <div className={`max-w-xs sm:max-w-lg lg:max-w-2xl ${isUser ? 'chat-user' : 'chat-ai'}`}>
-                {msg.content.split('\n').map((line, i) => {
-                    if (line.startsWith('**') && line.endsWith('**')) {
-                        return <p key={i} className="font-bold mb-1">{line.slice(2, -2)}</p>;
-                    }
-                    if (line.startsWith('- ')) {
-                        return <li key={i} className="ml-4 list-disc text-sm">{line.slice(2)}</li>;
-                    }
-                    const parts = line.split(/(\*\*[^*]+\*\*)/g);
-                    return (
-                        <p key={i} className="text-sm leading-relaxed mb-1">
-                            {parts.map((part, j) =>
-                                part.startsWith('**') && part.endsWith('**')
-                                    ? <strong key={j}>{part.slice(2, -2)}</strong>
-                                    : part
-                            )}
-                        </p>
-                    );
-                })}
+                <div className="markdown-content">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                    </ReactMarkdown>
+                </div>
                 <p className={`text-xs mt-2 ${isUser ? 'text-blue-200' : 'text-gray-400'}`}>
                     {new Date(msg.created_at || msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </p>

@@ -43,9 +43,9 @@ function QuizResults({ quiz, answers, timeSpent, onRestart }) {
     const score = Math.round((totalCorrect / quiz.totalQuestions) * 100);
 
     const getScoreColor = () => {
-        if (score >= 80) return { text: 'text-emerald-600', bg: 'bg-emerald-100', msg: 'Excellent travail ! 🎉', sub: 'Vous maîtrisez très bien ce sujet.' };
-        if (score >= 60) return { text: 'text-amber-600', bg: 'bg-amber-100', msg: 'Bon travail ! 👍', sub: 'Quelques points à retravailler.' };
-        return { text: 'text-red-600', bg: 'bg-red-100', msg: 'Continuez à réviser ! 💪', sub: 'Ce sujet nécessite plus de révision.' };
+        if (score >= 80) return { text: 'text-emerald-600', bg: 'bg-emerald-100', msg: 'Excellent travail !', sub: 'Vous maîtrisez très bien ce sujet.' };
+        if (score >= 60) return { text: 'text-amber-600', bg: 'bg-amber-100', msg: 'Bon travail !', sub: 'Quelques points à retravailler.' };
+        return { text: 'text-red-600', bg: 'bg-red-100', msg: 'Continuez à réviser ! ', sub: 'Ce sujet nécessite plus de révision.' };
     };
 
     const { text, bg, msg, sub } = getScoreColor();
@@ -102,7 +102,7 @@ function QuizResults({ quiz, answers, timeSpent, onRestart }) {
                                 </div>
                                 {!isCorrect && <p className="text-xs text-emerald-700 ml-8 mb-1">✓ Bonne réponse : <strong>{q.options[q.correctIndex]}</strong></p>}
                                 <p className="text-xs text-gray-600 ml-8 bg-white/60 rounded-lg px-3 py-2 border border-gray-100">
-                                    💡 {q.explanation}
+                                     {q.explanation}
                                 </p>
                             </div>
                         );
@@ -198,7 +198,7 @@ export default function QuizPage() {
         if (selected === null) return;
         setRevealed(true);
         const isCorrect = selected === quiz.questions[currentQ].correctIndex;
-        if (isCorrect) addToast('Bonne réponse ! ✨', 'success');
+        if (isCorrect) addToast('Bonne réponse ! ', 'success');
         else addToast('Incorrect. Lisez l\'explication.', 'error');
     };
 
