@@ -79,10 +79,6 @@ function QuizResults({ quiz, answers, timeSpent, onRestart }) {
                         <RotateCcw className="w-4 h-4" />
                         Recommencer
                     </button>
-                    <button className="flex-1 btn-primary justify-center">
-                        <TrendingUp className="w-4 h-4" />
-                        Voir progression
-                    </button>
                 </div>
             </div>
 
