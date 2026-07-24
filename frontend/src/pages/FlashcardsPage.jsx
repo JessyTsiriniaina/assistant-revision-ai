@@ -4,6 +4,8 @@ import {
     ChevronRight, RotateCcw, Lightbulb,
     BookOpen, Zap, Eye, Loader2
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { colorMap } from '../data/mockData';
 import { useToast } from '../context/useToast';
 import { fetchFlashcards, generateFlashcards, fetchDocuments } from '../services/api';
@@ -35,8 +37,10 @@ function FlashCard({ card, isFlipped, onFlip }) {
                             <div className={`w-14 h-14 rounded-2xl ${c.bg} flex items-center justify-center mb-4`}>
                                 <BookMarked className={`w-7 h-7 ${c.text}`} />
                             </div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-3">{card.title}</h3>
-                            <p className="text-gray-500 text-sm leading-relaxed">{card.summary}</p>
+<h3 className="text-2xl font-black text-gray-900 mb-3">{card.title}</h3>
+                                <div className="text-gray-500 text-sm leading-relaxed">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{card.summary}</ReactMarkdown>
+                                </div>
                         </div>
 
                         <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-100">
@@ -56,7 +60,9 @@ function FlashCard({ card, isFlipped, onFlip }) {
                                     <Lightbulb className="w-4 h-4 text-primary-600" />
                                     <span className="text-xs font-bold text-primary-700 uppercase tracking-wide">Explication</span>
                                 </div>
-                                <p className="text-sm text-gray-700 leading-relaxed">{card.explanation}</p>
+                                <div className="text-sm text-gray-700 leading-relaxed">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{card.explanation}</ReactMarkdown>
+                                </div>
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
@@ -64,7 +70,9 @@ function FlashCard({ card, isFlipped, onFlip }) {
                                     <BookOpen className="w-3.5 h-3.5 text-amber-600" />
                                     <span className="text-xs font-bold text-amber-700">Exemple</span>
                                 </div>
-                                <p className="text-sm text-gray-700">{card.example}</p>
+                                <div className="text-sm text-gray-700">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{card.example}</ReactMarkdown>
+                                </div>
                             </div>
 
                             <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
@@ -72,7 +80,9 @@ function FlashCard({ card, isFlipped, onFlip }) {
                                     <Zap className="w-3.5 h-3.5 text-purple-600" />
                                     <span className="text-xs font-bold text-purple-700">Astuce mémo</span>
                                 </div>
-                                <p className="text-sm text-gray-700">{card.memoryTip}</p>
+                                <div className="text-sm text-gray-700">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{card.memoryTip}</ReactMarkdown>
+                                </div>
                             </div>
                         </div>
 
@@ -287,7 +297,9 @@ export default function FlashcardsPage() {
                                     <span className={`badge ${c.bg} ${c.text} text-xs`}>{card.subject}</span>
                                 </div>
                                 <h3 className="font-bold text-gray-900 mb-2">{card.title}</h3>
-                                <p className="text-sm text-gray-500 leading-relaxed mb-4">{card.summary}</p>
+                                <div className="text-sm text-gray-500 leading-relaxed mb-4">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{card.summary}</ReactMarkdown>
+                                </div>
                                 <div className="flex items-center justify-between">
                                     <span className={`badge ${card.difficulty === 'Facile' ? 'badge-green' : card.difficulty === 'Moyen' ? 'badge-yellow' : 'bg-red-100 text-red-700 badge'}`}>
                                         {card.difficulty}
