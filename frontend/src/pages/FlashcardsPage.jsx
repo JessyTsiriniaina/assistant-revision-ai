@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useReducer } from 'react';
 import {
-    BookMarked, Star, Download, Printer, ChevronLeft,
-    ChevronRight, Filter, Search, RotateCcw, Lightbulb,
+    BookMarked, ChevronLeft,
+    ChevronRight, RotateCcw, Lightbulb,
     BookOpen, Zap, Eye, Loader2
 } from 'lucide-react';
 import { colorMap } from '../data/mockData';
-import { useToast } from '../context/ToastContext';
-import { fetchFlashcards, toggleFlashcardFavorite, generateFlashcards, fetchDocuments } from '../services/api';
+import { useToast } from '../context/useToast';
+import { fetchFlashcards, generateFlashcards, fetchDocuments } from '../services/api';
 
-function FlashCard({ card, isFlipped, onFlip, onFavorite }) {
+function FlashCard({ card, isFlipped, onFlip }) {
     const c = colorMap[card.color] || colorMap.blue;
     const diffColors = {
         Facile: 'badge-green',
@@ -28,12 +28,6 @@ function FlashCard({ card, isFlipped, onFlip, onFavorite }) {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className={diffColors[card.difficulty]}>{card.difficulty}</span>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onFavorite(card.id); }}
-                                    className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                                >
-                                    <Star className={`w-4 h-4 ${card.isFavorite ? 'text-amber-400 fill-amber-400' : 'text-gray-400'}`} />
-                                </button>
                             </div>
                         </div>
 
@@ -95,67 +89,73 @@ function FlashCard({ card, isFlipped, onFlip, onFavorite }) {
 
 export default function FlashcardsPage() {
     const { addToast } = useToast();
-    const [cards, setCards] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [isFlipped, setIsFlipped] = useState(false);
-    const [filterSubject, setFilterSubject] = useState('Tous');
-    const [showFavOnly, setShowFavOnly] = useState(false);
     const [viewMode, setViewMode] = useState('cards');
     const [docs, setDocs] = useState([]);
+    const [selectedDocId, setSelectedDocId] = useState(null);
+
+    const [cardsState, dispatchCards] = useReducer(
+        (s, a) => {
+            switch (a.type) {
+                case 'LOAD': return { ...s, loading: true };
+                case 'LOADED': return { loading: false, data: a.data, index: 0, flipped: false };
+                case 'ERROR': return { ...s, loading: false };
+                case 'SET_INDEX': return { ...s, index: a.index };
+                case 'FLIP': return { ...s, flipped: a.flipped };
+                default: return s;
+            }
+        },
+        { loading: true, data: [], index: 0, flipped: false }
+    );
+    const cards = cardsState.data;
+    const loading = cardsState.loading;
+    const currentIndex = cardsState.index;
+    const isFlipped = cardsState.flipped;
 
     useEffect(() => {
-        fetchFlashcards()
-            .then(data => setCards(data))
-            .catch(() => addToast('Impossible de charger les fiches', 'error'))
-            .finally(() => setLoading(false));
-        fetchDocuments().then(setDocs).catch(() => {});
+        fetchDocuments()
+            .then(list => {
+                const indexed = list.filter(d => d.status === 'indexed');
+                setDocs(indexed);
+                if (!selectedDocId && indexed.length > 0) setSelectedDocId(indexed[0].id);
+            })
+            .catch(() => {});
     }, []);
 
-    const subjects = ['Tous', ...new Set(cards.map(c => c.subject))];
+    useEffect(() => {
+        let cancelled = false;
+        dispatchCards({ type: 'LOAD' });
+        fetchFlashcards(selectedDocId)
+            .then(data => { if (!cancelled) dispatchCards({ type: 'LOADED', data }); })
+            .catch(() => { if (!cancelled) { addToast('Impossible de charger les fiches', 'error'); dispatchCards({ type: 'ERROR' }); } });
+        return () => { cancelled = true; };
+    }, [selectedDocId]);
 
-    const filtered = cards.filter(c => {
-        const matchSub = filterSubject === 'Tous' || c.subject === filterSubject;
-        const matchFav = !showFavOnly || c.isFavorite;
-        return matchSub && matchFav;
-    });
-
+    const filtered = cards;
     const current = filtered[currentIndex];
 
     const goNext = () => {
-        setIsFlipped(false);
-        setTimeout(() => setCurrentIndex(i => Math.min(i + 1, filtered.length - 1)), 150);
+        const next = Math.min(currentIndex + 1, filtered.length - 1);
+        dispatchCards({ type: 'FLIP', flipped: false });
+        setTimeout(() => dispatchCards({ type: 'SET_INDEX', index: next }), 150);
     };
 
     const goPrev = () => {
-        setIsFlipped(false);
-        setTimeout(() => setCurrentIndex(i => Math.max(i - 1, 0)), 150);
-    };
-
-    const toggleFavorite = async (id) => {
-        const card = cards.find(c => c.id === id);
-        if (!card) return;
-        const newFav = !card.isFavorite;
-        try {
-            const updated = await toggleFlashcardFavorite(id, newFav);
-            setCards(prev => prev.map(c => c.id === id ? updated : c));
-            addToast(newFav ? 'Ajouté aux favoris ⭐' : 'Retiré des favoris', 'success');
-        } catch {
-            addToast('Erreur lors de la mise à jour', 'error');
-        }
+        const prev = Math.max(currentIndex - 1, 0);
+        dispatchCards({ type: 'FLIP', flipped: false });
+        setTimeout(() => dispatchCards({ type: 'SET_INDEX', index: prev }), 150);
     };
 
     const handleGenerate = async () => {
-        const indexedDoc = docs.find(d => d.status === 'indexed');
-        if (!indexedDoc) {
-            addToast('Aucun document indexé disponible', 'warning');
+        if (!selectedDocId) {
+            addToast('Sélectionnez un document', 'warning');
             return;
         }
         setGenerating(true);
         try {
-            const newCards = await generateFlashcards(indexedDoc.id, 5);
-            setCards(prev => [...newCards, ...prev]);
+            await generateFlashcards(selectedDocId, 5);
+            const updated = await fetchFlashcards(selectedDocId);
+            dispatchCards({ type: 'LOADED', data: updated });
             addToast('Fiches générées avec succès !', 'success');
         } catch {
             addToast('Erreur lors de la génération', 'error');
@@ -174,7 +174,7 @@ export default function FlashcardsPage() {
                     <p className="text-gray-500 text-sm mt-1">{filtered.length} fiche{filtered.length > 1 ? 's' : ''} disponible{filtered.length > 1 ? 's' : ''}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm py-2">
+                    <button onClick={handleGenerate} disabled={generating || !selectedDocId} className="btn-primary text-sm py-2 disabled:opacity-40">
                         {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                         {generating ? 'Génération...' : 'Générer'}
                     </button>
@@ -189,18 +189,29 @@ export default function FlashcardsPage() {
                 </div>
             </div>
 
-            <div className="flex gap-2 mb-6 flex-wrap">
-                {subjects.map(s => (
-                    <button
-                        key={s}
-                        onClick={() => { setFilterSubject(s); setCurrentIndex(0); setIsFlipped(false); }}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all
-              ${filterSubject === s ? 'bg-primary-600 text-white border-primary-600 shadow-glow' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'}`}
-                    >
-                        {s}
-                    </button>
-                ))}
-            </div>
+            {docs.length > 0 && (
+                <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Document source</p>
+                    <div className="flex gap-2 flex-wrap">
+                        {docs.map(doc => (
+                            <button
+                                key={doc.id}
+                                onClick={() => setSelectedDocId(doc.id)}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border
+                  ${selectedDocId === doc.id
+                                        ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:bg-primary-50'
+                                    }`}
+                            >
+                                <span>📄</span>
+                                <span>{doc.filename.replace(/\.[^/.]+$/, '').split(' ').slice(0, 3).join(' ')}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            
 
             {loading ? (
                 <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
@@ -236,8 +247,7 @@ export default function FlashcardsPage() {
                         <FlashCard
                             card={current}
                             isFlipped={isFlipped}
-                            onFlip={() => setIsFlipped(!isFlipped)}
-                            onFavorite={toggleFavorite}
+                            onFlip={() => dispatchCards({ type: 'FLIP', flipped: !isFlipped })}
                         />
                     )}
 
@@ -251,7 +261,7 @@ export default function FlashcardsPage() {
                             Précédent
                         </button>
                         <button
-                            onClick={() => { setIsFlipped(false); setCurrentIndex(Math.floor(Math.random() * filtered.length)); }}
+                            onClick={() => { dispatchCards({ type: 'FLIP', flipped: false }); dispatchCards({ type: 'SET_INDEX', index: Math.floor(Math.random() * filtered.length) }); }}
                             className="btn-ghost border border-gray-200 text-sm"
                         >
                             <RotateCcw className="w-4 h-4" />
@@ -272,12 +282,9 @@ export default function FlashcardsPage() {
                     {filtered.map(card => {
                         const c = colorMap[card.color] || colorMap.blue;
                         return (
-                            <div key={card.id} className="card-hover cursor-pointer" onClick={() => { setCurrentIndex(filtered.indexOf(card)); setViewMode('cards'); setIsFlipped(false); }}>
+                            <div key={card.id} className="card-hover cursor-pointer" onClick={() => { dispatchCards({ type: 'SET_INDEX', index: filtered.indexOf(card) }); setViewMode('cards'); dispatchCards({ type: 'FLIP', flipped: false }); }}>
                                 <div className="flex items-start justify-between mb-3">
                                     <span className={`badge ${c.bg} ${c.text} text-xs`}>{card.subject}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); toggleFavorite(card.id); }} className="p-1 hover:bg-gray-100 rounded-lg">
-                                        <Star className={`w-4 h-4 ${card.isFavorite ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
-                                    </button>
                                 </div>
                                 <h3 className="font-bold text-gray-900 mb-2">{card.title}</h3>
                                 <p className="text-sm text-gray-500 leading-relaxed mb-4">{card.summary}</p>

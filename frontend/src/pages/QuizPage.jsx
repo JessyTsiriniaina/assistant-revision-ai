@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-    Brain, Clock, Trophy, CheckCircle, XCircle, ChevronRight,
-    RotateCcw, Star, TrendingUp, AlertCircle, Lightbulb, Play,
+    Brain, Clock, CheckCircle, XCircle, ChevronRight,
+    RotateCcw, TrendingUp, Lightbulb, Play,
     Timer, Target, Loader2
 } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import { generateQuiz, submitQuiz, fetchDocuments } from '../services/api';
 
 function QuizStart({ quiz, onStart }) {
@@ -128,14 +128,32 @@ export default function QuizPage() {
     const [timeLeft, setTimeLeft] = useState(600);
     const [timeSpent, setTimeSpent] = useState(0);
     const [docs, setDocs] = useState([]);
+    const [selectedDocId, setSelectedDocId] = useState(null);
     const [generating, setGenerating] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         fetchDocuments()
-            .then(list => setDocs(list.filter(d => d.status === 'indexed')))
+            .then(list => {
+                const indexed = list.filter(d => d.status === 'indexed');
+                setDocs(indexed);
+                if (indexed.length > 0) setSelectedDocId(indexed[0].id);
+            })
             .catch(() => {});
     }, []);
+
+    const handleEndQuiz = async () => {
+        if (submitting) return;
+        setSubmitting(true);
+        try {
+            await submitQuiz(quiz.id, [...answers, selected]);
+            setPhase('results');
+        } catch {
+            addToast('Erreur lors de la soumission du quiz', 'error');
+            setPhase('results');
+        }
+        setSubmitting(false);
+    };
 
     useEffect(() => {
         if (phase !== 'quiz' || !quiz) return;
@@ -151,32 +169,16 @@ export default function QuizPage() {
             setTimeSpent(s => s + 1);
         }, 1000);
         return () => clearInterval(interval);
- }, [phase, quiz]);
-
-    const handleEndQuiz = async () => {
-        if (submitting) return;
-        setSubmitting(true);
-        try {
-            const result = await submitQuiz(quiz.id, [...answers, selected]);
-            setQuiz(prev => ({ ...prev, result }));
-            setPhase('results');
-        } catch {
-            addToast('Erreur lors de la soumission du quiz', 'error');
-            setPhase('results');
-        }
-        setSubmitting(false);
-    };
+ }, [phase, quiz, handleEndQuiz]);
 
     const handleStart = async () => {
-        const indexed = docs.filter(d => d.status === 'indexed');
-        if (indexed.length === 0) {
-            addToast('Aucun document indexé disponible pour générer un quiz', 'warning');
+        if (!selectedDocId) {
+            addToast('Sélectionnez un document', 'warning');
             return;
         }
-        const doc = indexed[0];
         setGenerating(true);
         try {
-            const q = await generateQuiz(doc.id, 5, 'moyen');
+            const q = await generateQuiz(selectedDocId, 5, 'moyen');
             setQuiz(q);
             setPhase('start');
             setTimeLeft(q.timeLimit || 600);
@@ -250,13 +252,35 @@ export default function QuizPage() {
                     <Brain className="w-6 h-6 text-amber-600" />
                     <h1 className="text-2xl font-bold text-gray-900">Quiz</h1>
                 </div>
-                <div className="card max-w-2xl mx-auto text-center py-16 shadow-soft">
+                <div className="card max-w-2xl mx-auto text-center py-10 shadow-soft">
                     <Brain className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-gray-900 mb-2">Générer un quiz</h2>
-                    <p className="text-gray-500 mb-6">Créez un quiz à partir de vos documents indexés</p>
-                    <button onClick={handleStart} disabled={docs.length === 0} className="btn-primary mx-auto justify-center shadow-glow disabled:opacity-40">
-                        <Brain className="w-5 h-5" />
-                        Générer un quiz
+                    <p className="text-gray-500 mb-6">Choisissez un document puis générez le quiz</p>
+
+                    {docs.length === 0 ? (
+                        <p className="text-sm text-gray-400 mb-6">Aucun document indexé disponible.</p>
+                    ) : (
+                        <div className="flex flex-wrap justify-center gap-3 mb-8">
+                            {docs.map(doc => (
+                                <button
+                                    key={doc.id}
+                                    onClick={() => setSelectedDocId(doc.id)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border
+                  ${selectedDocId === doc.id
+                                            ? 'bg-primary-600 text-white border-primary-600 shadow-glow'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:bg-primary-50'
+                                        }`}
+                                >
+                                    <span>📄</span>
+                                    <span>{doc.filename.replace(/\.[^/.]+$/, '').split(' ').slice(0, 3).join(' ')}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    <button onClick={handleStart} disabled={!selectedDocId || generating} className="btn-primary mx-auto justify-center shadow-glow disabled:opacity-40">
+                        {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Brain className="w-5 h-5" />}
+                        {generating ? 'Génération...' : 'Générer le quiz'}
                     </button>
                 </div>
             </div>

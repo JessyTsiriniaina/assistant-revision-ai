@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Upload, File, X, CheckCircle, Loader2, Plus } from 'lucide-react';
-import { useToast } from '../../context/ToastContext';
+import { Upload, X, CheckCircle, Loader2 } from 'lucide-react';
+import { useToast } from '../../context/useToast';
 import { colorMap } from '../../data/mockData';
 import { fetchDocuments, uploadDocument, deleteDocument } from '../../services/api';
 
@@ -74,18 +74,42 @@ export default function UploadZone({ compact = false }) {
     const { addToast } = useToast();
     const [isDragging, setIsDragging] = useState(false);
     const [files, setFiles] = useState([]);
-    const [uploading, setUploading] = useState(false);
 
-    const loadFiles = useCallback(async () => {
+    useEffect(() => {
+        fetchDocuments()
+            .then(data => setFiles(data))
+            .catch(() => addToast('Impossible de charger les documents', 'error'));
+    }, []);
+
+    const refreshFiles = useCallback(async () => {
         try {
             const data = await fetchDocuments();
             setFiles(data);
         } catch {
             addToast('Impossible de charger les documents', 'error');
         }
-    }, []);
+    }, [addToast]);
 
-    useEffect(() => { loadFiles(); }, []);
+    const processFiles = useCallback(async (newFiles) => {
+        const valid = newFiles.filter(f => {
+            const ext = '.' + f.name.split('.').pop().toLowerCase();
+            return ACCEPTED_FORMATS.includes(ext);
+        });
+        if (valid.length < newFiles.length) {
+            addToast('Certains fichiers ont un format non supporté', 'warning');
+        }
+        if (valid.length === 0) return;
+
+        try {
+            for (const file of valid) {
+                await uploadDocument(file);
+                addToast(`"${file.name}" importé avec succès !`, 'success');
+            }
+            await refreshFiles();
+        } catch {
+            addToast('Erreur lors de l\'import des documents', 'error');
+        }
+    }, [addToast, refreshFiles]);
 
     const handleDragOver = useCallback((e) => {
         e.preventDefault();
@@ -99,37 +123,14 @@ export default function UploadZone({ compact = false }) {
         setIsDragging(false);
         const droppedFiles = Array.from(e.dataTransfer.files);
         processFiles(droppedFiles);
-    }, []);
+    }, [processFiles]);
 
     const handleFileInput = (e) => {
         const selectedFiles = Array.from(e.target.files);
         processFiles(selectedFiles);
     };
 
-    const processFiles = async (newFiles) => {
-        const valid = newFiles.filter(f => {
-            const ext = '.' + f.name.split('.').pop().toLowerCase();
-            return ACCEPTED_FORMATS.includes(ext);
-        });
-        if (valid.length < newFiles.length) {
-            addToast('Certains fichiers ont un format non supporté', 'warning');
-        }
-        if (valid.length === 0) return;
-
-        setUploading(true);
-        try {
-            for (const file of valid) {
-                await uploadDocument(file);
-                addToast(`"${file.name}" importé avec succès !`, 'success');
-            }
-            await loadFiles();
-        } catch {
-            addToast('Erreur lors de l\'import des documents', 'error');
-        }
-        setUploading(false);
-    };
-
-    const removeFile = async (id) => {
+    const removeFile = useCallback(async (id) => {
         try {
             await deleteDocument(id);
             setFiles(prev => prev.filter(f => f.id !== id));
@@ -137,7 +138,7 @@ export default function UploadZone({ compact = false }) {
         } catch {
             addToast('Erreur lors de la suppression', 'error');
         }
-    };
+    }, [addToast]);
 
     return (
         <div className="space-y-4">

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
     GraduationCap,
     Upload, MessageCircle,
-    FileText, BookMarked, Brain, BarChart3, CheckCircle,
+    FileText, BookMarked, Brain, CheckCircle,
     ChevronRight, Sun, Moon, Sparkles, LayoutGrid, ChevronDown
 } from 'lucide-react';
 import hero1 from '../assets/hero1.jpg';
@@ -57,7 +57,7 @@ function DarkModeToggle({ dark, toggle }) {
 
 export default function LandingPage() {
     const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
-    const [dragging, setDragging] = useState(false);
+    
 
     useEffect(() => {
         const root = document.documentElement;

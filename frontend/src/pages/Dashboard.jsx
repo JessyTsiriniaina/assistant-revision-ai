@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, BookMarked, Brain, Plus, Zap, Loader2 } from 'lucide-react';
+import { FileText, BookMarked, Brain, Plus, Zap } from 'lucide-react';
 import UploadZone from '../components/upload/UploadZone';
 import { useNavigate } from 'react-router-dom';
 import { fetchProgress } from '../services/api';

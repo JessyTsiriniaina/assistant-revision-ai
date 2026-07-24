@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useReducer } from 'react';
 import {
-    FileText, Clock, User, Calendar, Copy, Download,
-    RefreshCw, ChevronDown, ChevronUp, Lightbulb, Hash,
-    BookOpen, CheckCircle, Zap, FlaskConical, Eye, Star, Loader2
+    FileText, Clock, User, Calendar,
+    RefreshCw, Lightbulb, Hash,
+    BookOpen, CheckCircle, Zap, FlaskConical, Eye, Loader2
 } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import { fetchDocuments, generateSummary } from '../services/api';
 
 const TABS = [
@@ -106,8 +106,19 @@ export default function SummaryPage() {
     const [activeTab, setActiveTab] = useState('overview');
     const [documents, setDocuments] = useState([]);
     const [selectedDocId, setSelectedDocId] = useState(null);
-    const [summary, setSummary] = useState(null);
-    const [isGenerating, setIsGenerating] = useState(false);
+    const [summaryState, dispatchSummary] = useReducer(
+        (s, a) => {
+            switch (a.type) {
+                case 'LOAD': return { ...s, loading: true };
+                case 'LOADED': return { loading: false, data: a.data };
+                case 'ERROR': return { ...s, loading: false };
+                default: return s;
+            }
+        },
+        { loading: false, data: null }
+    );
+    const summary = summaryState.data;
+    const isGenerating = summaryState.loading;
     const [loadingDocs, setLoadingDocs] = useState(true);
 
     useEffect(() => {
@@ -122,18 +133,24 @@ export default function SummaryPage() {
 
     const loadSummary = async (docId) => {
         if (!docId) return;
-        setIsGenerating(true);
+        dispatchSummary({ type: 'LOAD' });
         try {
             const result = await generateSummary(docId);
-            setSummary(result);
+            dispatchSummary({ type: 'LOADED', data: result });
         } catch {
             addToast('Erreur lors de la génération du résumé', 'error');
+            dispatchSummary({ type: 'ERROR' });
         }
-        setIsGenerating(false);
     };
 
     useEffect(() => {
-        if (selectedDocId) loadSummary(selectedDocId);
+        if (!selectedDocId) return;
+        let cancelled = false;
+        dispatchSummary({ type: 'LOAD' });
+        generateSummary(selectedDocId)
+            .then(result => { if (!cancelled) dispatchSummary({ type: 'LOADED', data: result }); })
+            .catch(() => { if (!cancelled) { addToast('Erreur lors de la génération du résumé', 'error'); dispatchSummary({ type: 'ERROR' }); } });
+        return () => { cancelled = true; };
     }, [selectedDocId]);
 
     const handleRegenerate = () => {

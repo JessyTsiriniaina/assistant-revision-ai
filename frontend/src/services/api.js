@@ -79,11 +79,6 @@ export async function generateFlashcards(document_id, num_cards = 5) {
   return data;
 }
 
-export async function toggleFlashcardFavorite(card_id, is_favorite) {
-  const { data } = await API.post(`/flashcards/${card_id}/favorite`, { is_favorite });
-  return data;
-}
-
 // ─── Progress ────────────────────────────────────────────────
 export async function fetchProgress() {
   const { data } = await API.get('/progress');

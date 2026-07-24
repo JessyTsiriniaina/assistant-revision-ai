@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useReducer } from 'react';
 import {
     Send, Plus, MessageCircle,
     Loader2, GraduationCap, ChevronRight, Trash2, Bot, User
 } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import {
     fetchConversations, fetchConversation, deleteConversation, sendChatMessage
 } from '../services/api';
@@ -61,13 +61,25 @@ export default function AssistantPage() {
     const { addToast } = useToast();
     const [conversations, setConversations] = useState([]);
     const [activeConvId, setActiveConvId] = useState(null);
-    const [activeConv, setActiveConv] = useState(null);
-    const [loadingConv, setLoadingConv] = useState(false);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [loadingInit, setLoadingInit] = useState(true);
     const messagesEndRef = useRef(null);
+
+    const [convState, dispatchConv] = useReducer(
+        (s, a) => {
+            switch (a.type) {
+                case 'LOAD': return { ...s, loading: true };
+                case 'LOADED': return { loading: false, conv: a.conv };
+                case 'ERROR': return { ...s, loading: false };
+                default: return s;
+            }
+        },
+        { loading: false, conv: null }
+    );
+    const activeConv = convState.conv;
+    const loadingConv = convState.loading;
 
     useEffect(() => {
         fetchConversations()
@@ -80,12 +92,11 @@ export default function AssistantPage() {
     }, []);
 
     useEffect(() => {
-        if (!activeConvId) { setActiveConv(null); return; }
-        setLoadingConv(true);
+        if (!activeConvId) return;
+        dispatchConv({ type: 'LOAD' });
         fetchConversation(activeConvId)
-            .then(conv => setActiveConv(conv))
-            .catch(() => addToast('Erreur lors du chargement de la conversation', 'error'))
-            .finally(() => setLoadingConv(false));
+            .then(conv => dispatchConv({ type: 'LOADED', conv }))
+            .catch(() => { addToast('Erreur lors du chargement de la conversation', 'error'); dispatchConv({ type: 'ERROR' }); });
     }, [activeConvId]);
 
     useEffect(() => {
@@ -112,7 +123,7 @@ export default function AssistantPage() {
                 setActiveConvId(result.conversation_id);
             } else {
                 const full = await fetchConversation(result.conversation_id);
-                setActiveConv(full);
+                dispatchConv({ type: 'LOADED', conv: full });
             }
         } catch {
             addToast('Erreur lors de l\'envoi du message', 'error');
@@ -122,7 +133,7 @@ export default function AssistantPage() {
 
     const newConversation = () => {
         setActiveConvId(null);
-        setActiveConv(null);
+        dispatchConv({ type: 'LOADED', conv: null });
         addToast('Nouvelle conversation démarrée', 'success');
     };
 
