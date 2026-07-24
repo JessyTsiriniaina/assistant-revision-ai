@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Upload, X, CheckCircle, Loader2 } from 'lucide-react';
 import { useToast } from '../../context/useToast';
 import { colorMap } from '../../data/mockData';
@@ -80,6 +80,23 @@ export default function UploadZone({ compact = false }) {
             .then(data => setFiles(data))
             .catch(() => addToast('Impossible de charger les documents', 'error'));
     }, []);
+
+    const hasPending = files.some(f => f.status === 'pending' || f.status === 'processing');
+
+    useEffect(() => {
+        if (!hasPending) return;
+        const interval = setInterval(async () => {
+            try {
+                const data = await fetchDocuments();
+                setFiles(data);
+                const stillBusy = data.some(f => f.status === 'pending' || f.status === 'processing');
+                if (!stillBusy) clearInterval(interval);
+            } catch {
+                clearInterval(interval);
+            }
+        }, 2000);
+        return () => clearInterval(interval);
+    }, [hasPending]);
 
     const refreshFiles = useCallback(async () => {
         try {

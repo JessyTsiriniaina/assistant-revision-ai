@@ -73,6 +73,7 @@ export default function AssistantPage() {
                 case 'LOAD': return { ...s, loading: true };
                 case 'LOADED': return { loading: false, conv: a.conv };
                 case 'ERROR': return { ...s, loading: false };
+                case 'ADD_MESSAGE': return s.conv ? { ...s, conv: { ...s.conv, messages: [...s.conv.messages, a.msg] } } : s;
                 default: return s;
             }
         },
@@ -108,6 +109,9 @@ export default function AssistantPage() {
         const text = input.trim();
         setInput('');
         setIsTyping(true);
+
+        const userMsg = { id: Date.now(), role: 'user', content: text, created_at: new Date().toISOString() };
+        dispatchConv({ type: 'ADD_MESSAGE', msg: userMsg });
 
         const backendId = typeof activeConvId === 'number' ? activeConvId : null;
 
